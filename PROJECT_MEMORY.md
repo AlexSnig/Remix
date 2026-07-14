@@ -6,7 +6,7 @@ Last updated: 2026-07-14
 
 - Repository: `https://github.com/AlexSnig/Remix`, branch `main`.
 - Product: personal Android-first museum motion-sensor PWA.
-- Runtime: static React 19/Vite 6 build for Cloudflare Pages; no Express server.
+- Runtime: static React 19/Vite 6 build on Cloudflare Workers Static Assets; no Express server.
 - Offline: `vite-plugin-pwa` generateSW strategy precaches app shell, local fonts, and icons.
 - Audio: built-in Web Audio beep or a local phone file stored as IndexedDB Blob, maximum 12 MB.
 - Storage: `AndroidMotionDetectorDB` version `3`; legacy base64 records migrate lazily.
@@ -27,7 +27,7 @@ Last updated: 2026-07-14
 
 ## Product decisions
 
-- Cloudflare Pages project name: `alex-remix-motion-sensor`; fallback `alex-remix-motion-sensor-2026`.
+- Cloudflare Worker name: `pirvideomotion`; `wrangler.jsonc` uses native SPA fallback handling.
 - Runtime must work without a private server. Google Drive integration was removed.
 - Audio is imported from the phone and copied locally before offline use.
 - PWA-first remains the target. Capacitor is considered only after a real-device PWA soak test fails.
@@ -35,4 +35,4 @@ Last updated: 2026-07-14
 
 ## Remaining production gate
 
-Cloudflare authentication/deployment and Android hardware/emulator access are external prerequisites. The final trustworthy test is an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, network loss, background/foreground, camera permission loss, storage pressure, and repeated custom narration playback.
+Cloudflare deployment is configured and runs through the connected build pipeline. Android hardware/emulator access remains an external prerequisite. The final trustworthy test is an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, network loss, background/foreground, camera permission loss, storage pressure, and repeated custom narration playback.

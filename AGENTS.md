@@ -4,7 +4,7 @@
 
 This repository is a personal Android-first museum motion-sensor PWA. It runs in the foreground on the user's fixed phone, detects visitors with the camera, plays local narration or an alert, and stores a small local event log.
 
-The production target is a static Cloudflare Pages deployment installed from Android Chrome. There is no Express server, Google Drive runtime integration, native APK, Play Store scope, or enterprise distribution.
+The production target is a Cloudflare Workers Static Assets deployment installed from Android Chrome. There is no Express server, Google Drive runtime integration, native APK, Play Store scope, or enterprise distribution.
 
 ## Required skills
 
@@ -38,6 +38,7 @@ Browser plugin is preferred when available. Otherwise use the committed Playwrig
 - `src/utils/indexedDB.ts` owns database version `3`, legacy audio migration, Blob storage, logs, persistence health, and pruning.
 - `src/utils/settings.ts` is the only settings migration/default boundary.
 - PWA setup lives in `vite.config.ts` and `src/utils/pwa.ts`. Updates must not reload an armed detector.
+- Cloudflare deployment lives in `wrangler.jsonc`. Keep `assets.not_found_handling` set to `single-page-application`; do not recreate a catch-all `_redirects` rule to `/index.html`.
 
 Production camera failure must be explicit. Never add an automatic simulated-camera fallback to production. A test stream may be injected only inside tests.
 

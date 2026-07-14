@@ -30,17 +30,20 @@ npm run test:e2e
 
 Development runs at `http://localhost:5173`. Production preview runs at `http://localhost:4173` by default. Camera access on a phone requires HTTPS; localhost is only a development exception.
 
-## Cloudflare Pages
+## Cloudflare Workers
 
-Create a Pages project named `alex-remix-motion-sensor` with:
+The deployed Worker is named `pirvideomotion`. Cloudflare should use:
 
 ```text
 Build command: npm ci && npm run build
+Deploy command: npx wrangler deploy
 Output directory: dist
 Node version: 20
 ```
 
-`public/_headers` enables same-origin camera access and safe static headers. `public/_redirects` supplies the SPA fallback. After deployment:
+`wrangler.jsonc` declares `dist` as the static asset directory and enables Cloudflare's native `single-page-application` fallback. Do not add a catch-all `_redirects` rewrite to `/index.html`; Workers rejects it as an infinite loop. `public/_headers` enables same-origin camera access and safe static headers.
+
+For a manual authenticated deployment, run `npm run deploy`. After deployment:
 
 1. Open the `pages.dev` HTTPS URL in Android Chrome.
 2. Install it with **Add to Home screen**.

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
     "preview": "vite preview --host 0.0.0.0",
     "clean": "rm -rf dist coverage test-results playwright-report",
     "lint": "tsc --noEmit",
@@ -37,6 +38,7 @@
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
   }
 }
