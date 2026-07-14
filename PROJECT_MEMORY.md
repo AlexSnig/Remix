@@ -2,68 +2,37 @@
 
 Last updated: 2026-07-14
 
-## Verified Current State
+## Current state
 
-- Repository: `https://github.com/AlexSnig/Remix`.
-- Local path: `/home/alex/Remix`.
-- Branch after clone: `main` tracking `origin/main`.
-- Package name in `package.json`: `react-example`.
-- Dependency lockfile: `package-lock.json` was generated locally with `npm install`.
-- Runtime server: `server.ts`, Express on port `3000`.
-- Frontend: React 19, TypeScript, Vite 6, Tailwind CSS 4.
-- Primary app purpose: personal Android/PWA-first museum exhibit motion sensor with camera detection, audio playback, kiosk gate, stealth overlay, and local event logs.
-- Main language default: Ukrainian. English is also supported.
-- Primary persistence:
-  - `localStorage` for detector settings, language, and exhibit name.
-  - IndexedDB database `AndroidMotionDetectorDB` version `2` for `audioFiles` and `motionLogs`.
-- Google Drive support is implemented through Express proxy/scraper routes, not directly from client-side Drive APIs.
-- Current automated validation command is `npm run lint`, which runs `tsc --noEmit`.
-- Validation on 2026-07-14: `npm run lint` passed and `npm run build` passed.
+- Repository: `https://github.com/AlexSnig/Remix`, branch `main`.
+- Product: personal Android-first museum motion-sensor PWA.
+- Runtime: static React 19/Vite 6 build for Cloudflare Pages; no Express server.
+- Offline: `vite-plugin-pwa` generateSW strategy precaches app shell, local fonts, and icons.
+- Audio: built-in Web Audio beep or a local phone file stored as IndexedDB Blob, maximum 12 MB.
+- Storage: `AndroidMotionDetectorDB` version `3`; legacy base64 records migrate lazily.
+- Settings: versioned and normalized through `src/utils/settings.ts`; saved camera choice is preserved.
+- Camera: production failures are visible errors; there is no simulated production stream.
+- Detection: 36 × 48 analysis, 10 FPS maximum, two-frame confirmation, 70% global-light rejection, optional center zone, 10-second calibration.
+- Reliability: one Wake Lock owner, visibility recovery, track ended/mute recovery, device-change recovery, and stalled-frame watchdog.
+- Updates: service-worker updates require confirmation and are disabled while armed.
 
-## Operational Assumptions
+## Validation snapshot
 
-- Target browser is Android Chrome on the user's own fixed phone/tablet in a museum or exhibit setting.
-- Current product target is personal use, not Play Store or enterprise distribution.
-- Preferred path is to harden the current React/Vite app as PWA/add-to-home-screen first.
-- If a personal APK becomes necessary, prefer a lightweight WebView/Capacitor wrapper before a full Expo/React Native rewrite.
-- Required installed skills for future agents: `frontend-app-builder`, `frontend-testing-debugging`, `react-best-practices`, `android-emulator-qa`, and `android-performance`.
-- Expo skills are not the default path; use them only for an explicit native React Native rewrite.
-- Zoom Android skills are not relevant unless the project adds Zoom integration.
-- Localhost is valid for development camera access; production should be served over HTTPS.
-- Camera/audio/fullscreen/wake-lock flows may require direct user gestures.
-- The app should remain useful even without a real camera during development because `CameraDetector` can create a simulated stream.
-- Google Drive folders/files used for audio should be public or otherwise downloadable without interactive login.
+- `npm run lint`: passing.
+- `npm run test:coverage`: 13 tests passing; 100% lines, 96.91% statements, 84.61% branches, 88.37% functions across selected critical utilities.
+- `npm run build`: passing; main JS about 90 KB gzip; PWA precache about 646 KB.
+- Playwright: mobile/desktop arming, camera denial, and offline service-worker flows are committed.
+- Browser plugin is unavailable, so regular Playwright is the accepted fallback.
+- Android emulator gate is blocked on this workstation: Java, Android SDK/ADB, and `/dev/kvm` are unavailable. CPU VT-x exists but KVM is not exposed.
 
-## Important Implementation Facts
+## Product decisions
 
-- `App.tsx` forces `cameraFacingMode` to `user` when loading saved settings.
-- Kiosk gate defaults to visible unless saved settings explicitly set `kioskModeEnabled === false`.
-- `CameraDetector` throttles frame processing to about 10 FPS and diffs a `36 x 48` hidden canvas for battery efficiency.
-- `noiseThreshold` is the percentage of changed pixels required to trigger motion.
-- `sensitivity` maps to per-pixel color difference threshold; higher sensitivity means lower required difference.
-- Motion trigger captures a compressed JPEG thumbnail from the visible canvas.
-- `stopAllAudio()` in `src/utils/audio.ts` is the central cleanup path for preset and custom audio.
-- Custom audio files are stored as base64 data URLs in IndexedDB and capped at 12 MB in UI flows.
-- Drive-imported audio IDs are prefixed with `drive_`; cache pruning preserves the currently selected audio and Drive audio in one pruning path.
+- Cloudflare Pages project name: `alex-remix-motion-sensor`; fallback `alex-remix-motion-sensor-2026`.
+- Runtime must work without a private server. Google Drive integration was removed.
+- Audio is imported from the phone and copied locally before offline use.
+- PWA-first remains the target. Capacitor is considered only after a real-device PWA soak test fails.
+- Play Store, Expo rewrite, enterprise deployment, cloud logging, and visitor identification are out of scope.
 
-## Known Risks And Technical Debt
+## Remaining production gate
 
-- Google Drive HTML scraping in `server.ts` is fragile and should be tested whenever Drive import matters.
-- There is duplicated Drive/audio selection logic between `SettingsPanel.tsx` and `MinimalFilesList.tsx`.
-- There is no dedicated migration layer for old `localStorage` settings.
-- There is no automated browser test suite for camera/audio/fullscreen/wake-lock flows.
-- Native Android packaging has not been added yet; current app is still a web app served by Express/Vite.
-- README previously came from an AI Studio template and has now been rewritten to match the actual app.
-- `vite.config.ts` contains a mojibake character in a comment. It is harmless but should be cleaned in a small formatting pass.
-
-## Recommended Next Improvements
-
-- Add/update PWA metadata and service worker strategy for personal Android install-from-browser use.
-- Test the app on the user's actual Android device before any native wrapper work.
-- If APK is still needed after PWA testing, evaluate Capacitor/WebView wrapper with minimal native surface.
-- Use `frontend-testing-debugging` for mobile browser verification and `android-emulator-qa` for any APK/WebView wrapper validation.
-- Add Playwright smoke tests with mocked camera/media APIs.
-- Extract duplicated Drive import logic into a shared utility or hook.
-- Add a small settings-normalization helper so new `DetectorSettings` fields get defaults safely.
-- Make server port configurable through `PORT` while preserving `3000` default.
-- Add a private/personal deployment note once the hosting target is known.
+Cloudflare authentication/deployment and Android hardware/emulator access are external prerequisites. The final trustworthy test is an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, network loss, background/foreground, camera permission loss, storage pressure, and repeated custom narration playback.

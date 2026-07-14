@@ -1,132 +1,64 @@
 # Remix Motion Sensor
 
-Personal mobile-first museum exhibit motion sensor built with React, Vite, Express, and browser camera APIs. The app turns the user's own Android phone or tablet into a kiosk-style detector: it watches a camera feed, detects frame changes, plays a selected audio signal, stores motion logs locally, and can mask the screen while detection keeps running.
+Autonomous Android-first PWA for a personal museum exhibit. It watches a real camera stream, detects movement, plays a built-in or locally imported audio file, and keeps a small local event log with thumbnails.
 
-## What The App Does
+## Runtime guarantees
 
-- Starts in a museum kiosk gate, then enters fullscreen and keeps the display awake when supported.
-- Uses `navigator.mediaDevices.getUserMedia()` to open the front or rear camera.
-- Compares low-resolution video frames on a hidden canvas to detect motion with low CPU usage.
-- Plays a built-in Web Audio beep or a custom uploaded/imported audio file.
-- Saves custom audio and motion logs in IndexedDB.
-- Stores user settings, language, kiosk state, and exhibit name in `localStorage`.
-- Provides Ukrainian and English interface text.
-- Lists and imports public Google Drive audio files through local Express proxy routes.
-- Provides stealth mode: black screen, hidden status, hold-to-exit control, and wake-lock request.
+- Production never replaces a failed camera with a simulated feed.
+- The selected MP3/M4A/WAV/AAC/OGG file is stored as a `Blob` in IndexedDB and remains available offline.
+- A service worker precaches the complete app shell, icons, and local fonts.
+- Camera, audio, writable storage, persistent-storage permission, Wake Lock, and HTTPS are shown in the startup readiness panel.
+- Camera tracks are cleaned up explicitly and recovered after `ended`, `mute`, device changes, or stalled frames.
+- Motion analysis runs at 10 FPS on a `36 × 48` canvas; React status updates are capped at 2 FPS.
+- Global lighting changes over 70% are ignored and motion must be present in two consecutive frames.
 
-## Android Strategy
+Google Drive and the Express proxy were deliberately removed. Runtime operation does not depend on a private server or internet access after the first successful PWA load.
 
-This project is optimized for personal use first:
+## Commands
 
-- First target: Android Chrome/PWA/add-to-home-screen.
-- Next practical target, if an APK is needed: lightweight WebView or Capacitor wrapper.
-- Native Expo/React Native rewrite is not the default path unless the product requirements change.
-- Play Store and enterprise distribution are out of scope unless explicitly requested.
-
-## Tech Stack
-
-- React 19 with TypeScript.
-- Vite 6 with `@vitejs/plugin-react`.
-- Tailwind CSS 4 through `@tailwindcss/vite`.
-- Express server in `server.ts`.
-- Web APIs: Camera, Canvas, Web Audio, Fullscreen, Wake Lock, IndexedDB, `localStorage`.
-- Icons from `lucide-react`.
-
-## Project Structure
-
-```text
-.
-├── server.ts                  # Express API routes and Vite middleware/static serving
-├── src/App.tsx                # Main app state, kiosk gate, tabs, settings, logs, stealth mode
-├── src/components/
-│   ├── CameraDetector.tsx     # Camera stream, frame differencing, trigger handling
-│   ├── LogsPanel.tsx          # Motion history, thumbnails, cache stats, pruning
-│   ├── MinimalFilesList.tsx   # Compact audio picker and Drive import UI
-│   ├── SettingsPanel.tsx      # Full settings/audio/cache controls
-│   └── StealthOverlay.tsx     # Blackout overlay and hold-to-unlock flow
-├── src/utils/
-│   ├── audio.ts               # Web Audio presets and custom audio playback
-│   ├── indexedDB.ts           # Local audio/log persistence and cache cleanup
-│   └── lang.ts                # Ukrainian and English translations
-├── src/types.ts               # Shared data contracts
-├── src/index.css              # Tailwind import, theme tokens, base styles
-├── vite.config.ts             # Vite config and HMR/watch behavior
-├── AGENTS.md                  # Canonical AI-agent instructions
-├── CLAUDE.md                  # Claude entrypoint, delegates to AGENTS.md
-├── GEMINI.md                  # Gemini entrypoint, delegates to AGENTS.md
-└── PROJECT_MEMORY.md          # Durable project facts and current assumptions
-```
-
-## Local Setup
-
-Prerequisites:
-
-- Node.js 20+ recommended.
-- A browser with camera support. Chrome/Android is the main target.
-- HTTPS or localhost for camera access. Localhost is accepted by browsers.
-
-Install dependencies:
+Requires Node.js 20 or newer.
 
 ```bash
 npm install
-```
-
-Optional environment:
-
-```bash
-cp .env.example .env.local
-```
-
-`GEMINI_API_KEY` and `APP_URL` are inherited from the AI Studio template. The current codebase does not call Gemini APIs directly; keep them only if future AI features need them.
-
-Run development server:
-
-```bash
 npm run dev
+npm run lint
+npm run test:coverage
+npm run build
+npm run preview
+npm run test:e2e
 ```
 
-Open:
+Development runs at `http://localhost:5173`. Production preview runs at `http://localhost:4173` by default. Camera access on a phone requires HTTPS; localhost is only a development exception.
+
+## Cloudflare Pages
+
+Create a Pages project named `alex-remix-motion-sensor` with:
 
 ```text
-http://localhost:3000
+Build command: npm ci && npm run build
+Output directory: dist
+Node version: 20
 ```
 
-Build production bundle:
+`public/_headers` enables same-origin camera access and safe static headers. `public/_redirects` supplies the SPA fallback. After deployment:
 
-```bash
-npm run build
-```
+1. Open the `pages.dev` HTTPS URL in Android Chrome.
+2. Install it with **Add to Home screen**.
+3. Start it from the installed icon and grant camera permission.
+4. Import narration from the phone before the exhibition goes offline.
+5. Confirm all readiness indicators; warnings must be understood before arming.
 
-Run built server:
+Service-worker updates are presented as a prompt and cannot be applied while the detector is armed.
 
-```bash
-npm run start
-```
+## Testing
 
-Type-check:
+- Vitest covers settings migration, motion math, IndexedDB Blob migration, cache pruning, persistence checks, and storage health writes.
+- Playwright validates mobile and desktop kiosk entry, explicit camera denial, console health, screenshot evidence, and offline service-worker reload.
+- Playwright screenshots and traces are written under `/tmp`, not committed.
+- Android emulator QA still requires Java, Android SDK/ADB, and `/dev/kvm`. This workstation currently does not expose them, so browser device emulation is not a substitute for the pending Android gate.
 
-```bash
-npm run lint
-```
+The final production stop gate remains a real-device soak test. An emulator cannot validate Galaxy A07 camera behavior, heat, charging, or battery management.
 
-Clean generated output:
+## Data and privacy
 
-```bash
-npm run clean
-```
-
-## Runtime Notes
-
-- The server always listens on port `3000`.
-- In development, Express mounts Vite in middleware mode.
-- In production, Express serves `dist/` and falls back to `dist/index.html`.
-- Google Drive import depends on scraping public Drive folder HTML. This is fragile by nature and may need maintenance if Google changes markup.
-- If no Drive files are discovered, `server.ts` returns a built-in fallback audio list.
-- The app falls back to a simulated camera stream if physical camera access fails, useful for desktop development.
-- The main production check for this personal app is testing on the actual Android device that will run it.
-
-## AI Agent Files
-
-Read `AGENTS.md` first before changing code. `PROJECT_MEMORY.md` stores the current verified project facts, operational assumptions, and known risks for future agents.
-
-Agents working on this project should use the installed skills named in `AGENTS.md`: `frontend-app-builder`, `frontend-testing-debugging`, `react-best-practices`, `android-emulator-qa`, and `android-performance`.
+Settings use a versioned localStorage schema. Audio and logs use `AndroidMotionDetectorDB` version `3`. Legacy base64 audio is migrated lazily to Blob storage. Automatic cleanup removes only old event logs and never deletes inactive local audio. All visitor thumbnails remain local unless the device owner exports or clears browser data.
