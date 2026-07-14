@@ -21,7 +21,7 @@ Last updated: 2026-07-14
 - `npm run lint`: passing.
 - `npm run test:coverage`: 13 tests passing; 100% lines, 96.91% statements, 84.61% branches, 88.37% functions across selected critical utilities.
 - `npm run build`: passing; main JS about 90 KB gzip; PWA precache about 646 KB.
-- Playwright: mobile/desktop arming, camera denial, and offline service-worker flows are committed.
+- `npm run test:e2e`: 6/6 mobile/desktop arming, camera-denial, and offline service-worker scenarios passing.
 - Browser plugin is unavailable, so regular Playwright is the accepted fallback.
 - Android emulator gate is blocked on this workstation: Java, Android SDK/ADB, and `/dev/kvm` are unavailable. CPU VT-x exists but KVM is not exposed.
 
