@@ -26,6 +26,9 @@ Last updated: 2026-07-14
 - Current product target is personal use, not Play Store or enterprise distribution.
 - Preferred path is to harden the current React/Vite app as PWA/add-to-home-screen first.
 - If a personal APK becomes necessary, prefer a lightweight WebView/Capacitor wrapper before a full Expo/React Native rewrite.
+- Required installed skills for future agents: `frontend-app-builder`, `frontend-testing-debugging`, `react-best-practices`, `android-emulator-qa`, and `android-performance`.
+- Expo skills are not the default path; use them only for an explicit native React Native rewrite.
+- Zoom Android skills are not relevant unless the project adds Zoom integration.
 - Localhost is valid for development camera access; production should be served over HTTPS.
 - Camera/audio/fullscreen/wake-lock flows may require direct user gestures.
 - The app should remain useful even without a real camera during development because `CameraDetector` can create a simulated stream.
@@ -58,6 +61,7 @@ Last updated: 2026-07-14
 - Add/update PWA metadata and service worker strategy for personal Android install-from-browser use.
 - Test the app on the user's actual Android device before any native wrapper work.
 - If APK is still needed after PWA testing, evaluate Capacitor/WebView wrapper with minimal native surface.
+- Use `frontend-testing-debugging` for mobile browser verification and `android-emulator-qa` for any APK/WebView wrapper validation.
 - Add Playwright smoke tests with mocked camera/media APIs.
 - Extract duplicated Drive import logic into a shared utility or hook.
 - Add a small settings-normalization helper so new `DetectorSettings` fields get defaults safely.

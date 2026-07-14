@@ -12,6 +12,18 @@ Primary target environment:
 - Local development through `http://localhost:3000`.
 - Browser APIs that require user gestures or secure contexts: camera, audio unlock, fullscreen, and wake lock.
 
+## Required Agent Skills
+
+For this project, agents should use these installed skills when the task matches their scope:
+
+- `frontend-app-builder`: use for UI/product work on the existing React/Vite app, especially mobile-first PWA flows.
+- `frontend-testing-debugging`: use for browser/mobile viewport verification, screenshots, visual regressions, and frontend debugging.
+- `react-best-practices`: use for React architecture, state, effects, rendering, performance, bundle, and TypeScript guidance.
+- `android-emulator-qa`: use when validating an APK/WebView wrapper or Android flow through `adb`, emulator screenshots, UI tree, and logcat.
+- `android-performance`: use when diagnosing Android runtime performance, startup, jank, CPU, frame timing, or memory behavior.
+
+Do not treat `Expo` skills as default for this repository. Use Expo only if the user explicitly chooses a native React Native rewrite. Do not use Zoom Android skills unless a Zoom integration is requested.
+
 Non-goals unless the user explicitly asks:
 
 - Play Store readiness.
@@ -171,6 +183,7 @@ For behavior changes, also manually verify:
 - Read `PROJECT_MEMORY.md` before making broad changes.
 - Keep changes scoped; this app is closer to an installation/kiosk tool than a generic web dashboard.
 - Treat this as a personal Android/PWA-first project unless the user changes the target.
+- Prefer the required installed skills listed above before reaching for generic advice.
 - Use Expo skills only if the user asks for a native rewrite or new React Native app.
 - Use Android emulator/performance skills when packaging or validating an APK/WebView wrapper.
 - If adding tests, prefer focused tests around utility functions first, then Playwright-style smoke tests for camera/audio flows with mocks.

@@ -128,3 +128,5 @@ npm run clean
 ## AI Agent Files
 
 Read `AGENTS.md` first before changing code. `PROJECT_MEMORY.md` stores the current verified project facts, operational assumptions, and known risks for future agents.
+
+Agents working on this project should use the installed skills named in `AGENTS.md`: `frontend-app-builder`, `frontend-testing-debugging`, `react-best-practices`, `android-emulator-qa`, and `android-performance`.
