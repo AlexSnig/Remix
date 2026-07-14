@@ -32,7 +32,7 @@ Development runs at `http://localhost:5173`. Production preview runs at `http://
 
 ## Cloudflare Workers
 
-The deployed Worker is named `pirvideomotion`. Cloudflare should use:
+The deployed Worker is named `alex-remix-motion-sensor`. Cloudflare should use:
 
 ```text
 Build command: npm ci && npm run build

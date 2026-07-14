@@ -1,7 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "pirvideomotion",
+  "name": "alex-remix-motion-sensor",
   "compatibility_date": "2026-07-14",
+  "workers_dev": true,
+  "preview_urls": true,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"

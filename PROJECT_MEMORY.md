@@ -27,7 +27,7 @@ Last updated: 2026-07-14
 
 ## Product decisions
 
-- Cloudflare Worker name: `pirvideomotion`; `wrangler.jsonc` uses native SPA fallback handling.
+- Cloudflare Worker name: `alex-remix-motion-sensor`; `wrangler.jsonc` uses native SPA fallback handling and explicitly enables the public workers.dev route and preview URLs.
 - Runtime must work without a private server. Google Drive integration was removed.
 - Audio is imported from the phone and copied locally before offline use.
 - PWA-first remains the target. Capacitor is considered only after a real-device PWA soak test fails.
