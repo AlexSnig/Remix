@@ -1,6 +1,6 @@
 # Remix Motion Sensor
 
-Mobile-first museum exhibit motion sensor built with React, Vite, Express, and browser camera APIs. The app turns a phone or tablet into a kiosk-style detector: it watches a camera feed, detects frame changes, plays a selected audio signal, stores motion logs locally, and can mask the screen while detection keeps running.
+Personal mobile-first museum exhibit motion sensor built with React, Vite, Express, and browser camera APIs. The app turns the user's own Android phone or tablet into a kiosk-style detector: it watches a camera feed, detects frame changes, plays a selected audio signal, stores motion logs locally, and can mask the screen while detection keeps running.
 
 ## What The App Does
 
@@ -13,6 +13,15 @@ Mobile-first museum exhibit motion sensor built with React, Vite, Express, and b
 - Provides Ukrainian and English interface text.
 - Lists and imports public Google Drive audio files through local Express proxy routes.
 - Provides stealth mode: black screen, hidden status, hold-to-exit control, and wake-lock request.
+
+## Android Strategy
+
+This project is optimized for personal use first:
+
+- First target: Android Chrome/PWA/add-to-home-screen.
+- Next practical target, if an APK is needed: lightweight WebView or Capacitor wrapper.
+- Native Expo/React Native rewrite is not the default path unless the product requirements change.
+- Play Store and enterprise distribution are out of scope unless explicitly requested.
 
 ## Tech Stack
 
@@ -114,6 +123,7 @@ npm run clean
 - Google Drive import depends on scraping public Drive folder HTML. This is fragile by nature and may need maintenance if Google changes markup.
 - If no Drive files are discovered, `server.ts` returns a built-in fallback audio list.
 - The app falls back to a simulated camera stream if physical camera access fails, useful for desktop development.
+- The main production check for this personal app is testing on the actual Android device that will run it.
 
 ## AI Agent Files
 

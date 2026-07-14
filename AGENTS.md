@@ -2,13 +2,22 @@
 
 ## Project Identity
 
-This repository is a mobile-first museum exhibit motion sensor app. It is intended to run on a phone or tablet near an exhibit, detect visitor movement through the camera, play an audio signal or narration, and keep a local event log with snapshots.
+This repository is a personal mobile-first museum exhibit motion sensor app. It is intended to run on the user's own Android phone or tablet near an exhibit, detect visitor movement through the camera, play an audio signal or narration, and keep a local event log with snapshots.
 
 Primary target environment:
 
-- Android Chrome on a fixed device, especially kiosk-like museum use.
+- Android Chrome on the user's own fixed device, especially kiosk-like museum use.
+- PWA/add-to-home-screen behavior before native packaging.
+- Optional lightweight Android WebView/Capacitor wrapper if the user wants a personal APK.
 - Local development through `http://localhost:3000`.
 - Browser APIs that require user gestures or secure contexts: camera, audio unlock, fullscreen, and wake lock.
+
+Non-goals unless the user explicitly asks:
+
+- Play Store readiness.
+- Enterprise distribution.
+- Full native rewrite in Expo/React Native.
+- Heavy CI/CD or app-store metadata work.
 
 ## Canonical Commands
 
@@ -115,6 +124,9 @@ Command meanings:
 
 - Preserve Ukrainian and English support. Any new visible UI text needs both translations.
 - Keep the app mobile-first. Test narrow layouts before considering desktop-only polish.
+- Optimize for the user's own Android device first, not broad market compatibility.
+- Prefer improving the existing web/PWA surface before proposing a native rewrite.
+- If an APK is needed for personal use, prefer a minimal WebView/Capacitor wrapper around the working app before considering Expo.
 - Treat Android Chrome and iOS Safari autoplay restrictions as real constraints.
 - Do not assume camera, fullscreen, wake lock, or audio playback can start without a user gesture.
 - Keep camera and audio cleanup explicit. Leaking tracks or audio nodes will hurt long-running kiosk use.
@@ -158,5 +170,8 @@ For behavior changes, also manually verify:
 
 - Read `PROJECT_MEMORY.md` before making broad changes.
 - Keep changes scoped; this app is closer to an installation/kiosk tool than a generic web dashboard.
+- Treat this as a personal Android/PWA-first project unless the user changes the target.
+- Use Expo skills only if the user asks for a native rewrite or new React Native app.
+- Use Android emulator/performance skills when packaging or validating an APK/WebView wrapper.
 - If adding tests, prefer focused tests around utility functions first, then Playwright-style smoke tests for camera/audio flows with mocks.
 - If changing UI, preserve the current dark museum-control visual language and orange brand accent unless the user asks for a redesign.
