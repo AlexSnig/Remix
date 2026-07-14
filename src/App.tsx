@@ -3,37 +3,22 @@ import {
   ShieldAlert, ShieldCheck, EyeOff, Radio, VolumeX, Volume2,
   Smartphone, Check, Edit3, Trash2, Landmark, List, Settings, X, ArrowLeft, RefreshCw
 } from 'lucide-react';
-import { DetectorSettings, MotionLog } from './types';
+import { CustomAudioFile, DetectorRuntimeStatus, DetectorSettings, MotionLog, ReadinessCheck } from './types';
 import CameraDetector from './components/CameraDetector';
 import SettingsPanel from './components/SettingsPanel';
 import LogsPanel from './components/LogsPanel';
 import StealthOverlay from './components/StealthOverlay';
 import MinimalFilesList from './components/MinimalFilesList';
-import { 
-  getAllMotionLogs, clearAllMotionLogs, getDB, getCustomAudio,
-  saveCustomAudio, getAllCustomAudios
-} from './utils/indexedDB';
+import {clearAllMotionLogs, deleteMotionLog, getAllMotionLogs, getCustomAudio, getDB, requestPersistentStorage, verifyStorageWritable} from './utils/indexedDB';
 import { stopAllAudio, unlockAudioContext } from './utils/audio';
 import { Language, TRANSLATIONS } from './utils/lang';
+import {DEFAULT_SETTINGS, normalizeSettings} from './utils/settings';
+import PwaUpdatePrompt from './components/PwaUpdatePrompt';
+import ReadinessPanel from './components/ReadinessPanel';
 
 const STORAGE_KEY = 'motion_detector_user_settings';
 const APP_NAME_STORAGE_KEY = 'motion_sensor_app_name';
 const LANG_STORAGE_KEY = 'motion_sensor_app_lang';
-
-const DEFAULT_SETTINGS: DetectorSettings = {
-  sensitivity: 70,               // 70% is an optimized default
-  noiseThreshold: 1.5,          // 1.5% is a normal indoor thresh
-  coolDownDelay: 6,             // 6 seconds delay
-  audioSourceType: 'preset',
-  audioPresetId: 'beep_short',
-  customAudioId: null,
-  cameraFacingMode: 'user', // front camera prioritized as default
-  stealthMode: false,
-  autoCleanCacheEnabled: true,
-  maxCacheLogsCount: 20,
-  audioVolume: 100,
-  kioskModeEnabled: true
-};
 
 export default function App() {
   const [lang, setLang] = useState<Language>(() => {
@@ -46,7 +31,7 @@ export default function App() {
 
   const [settings, setSettings] = useState<DetectorSettings>(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState<MotionLog[]>([]);
-  const [customAudioData, setCustomAudioData] = useState<string | null>(null);
+  const [customAudioData, setCustomAudioData] = useState<CustomAudioFile | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [stealthActive, setStealthActive] = useState<boolean>(false);
   const [isAlarmPlaying, setIsAlarmPlaying] = useState<boolean>(false);
@@ -89,25 +74,37 @@ export default function App() {
   // Screen Wake Lock stay awake state
   const [isWakeLockActive, setIsWakeLockActive] = useState<boolean>(false);
   const wakeLockRef = useRef<any>(null);
+  const wakeLockDesiredRef = useRef(false);
+  const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
+  const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
 
-  const requestWake = async () => {
+  const updateReadiness = (check: ReadinessCheck) => {
+    setReadinessChecks(previous => [...previous.filter(item => item.id !== check.id), check]);
+  };
+
+  const requestWake = async (): Promise<boolean> => {
+    wakeLockDesiredRef.current = true;
     if ('wakeLock' in navigator) {
       try {
         wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
         setIsWakeLockActive(true);
         wakeLockRef.current.addEventListener('release', () => {
           setIsWakeLockActive(false);
+          wakeLockRef.current = null;
         });
+        return true;
       } catch (err) {
         console.warn("Wake lock failed:", err);
+        return false;
       }
     } else {
-      // Fallback for older browsers
-      setIsWakeLockActive(true);
+      setIsWakeLockActive(false);
+      return false;
     }
   };
 
   const releaseWake = async () => {
+    wakeLockDesiredRef.current = false;
     if (wakeLockRef.current) {
       try {
         await wakeLockRef.current.release();
@@ -128,7 +125,7 @@ export default function App() {
   // Re-acquire wake lock on visibility change if active
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && isWakeLockActive) {
+      if (document.visibilityState === 'visible' && wakeLockDesiredRef.current && !wakeLockRef.current) {
         try {
           if ('wakeLock' in navigator) {
             wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
@@ -170,10 +167,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        // Force front camera on initial startup as requested
-        parsed.cameraFacingMode = 'user';
-        setSettings(parsed);
+        setSettings(normalizeSettings(JSON.parse(saved)));
       }
     } catch (e) {
       console.warn("Could not load local settings:", e);
@@ -207,7 +201,7 @@ export default function App() {
         try {
           const audio = await getCustomAudio(settings.customAudioId);
           if (audio) {
-            setCustomAudioData(audio.data);
+            setCustomAudioData(audio);
           } else {
             setCustomAudioData(null);
           }
@@ -222,28 +216,12 @@ export default function App() {
     loadCustomAudio();
   }, [settings.customAudioId, settings.audioSourceType]);
 
-  // Background Auto-sync for Google Drive folder
-  const [syncStatus, setSyncStatus] = useState<{
-    isSyncing: boolean;
-    lastMessage: string | null;
-    isError: boolean;
-  }>({
-    isSyncing: false,
-    lastMessage: null,
-    isError: false
-  });
-
-  // Automatic background synchronization disabled by user request. 
-  // Files are now only loaded on demand when selected/clicked by the user.
-  useEffect(() => {
-    // No-op: Auto sync is completely stopped
-  }, []);
-
   // Save settings whenever changed
   const handleSettingsChange = (newSettings: DetectorSettings) => {
-    setSettings(newSettings);
+    const normalized = normalizeSettings(newSettings);
+    setSettings(normalized);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
     } catch (e) {
       console.error("Could not write local settings:", e);
     }
@@ -287,22 +265,12 @@ export default function App() {
     setLogs(prev => [newLog, ...prev]);
     setIsAlarmPlaying(true);
     
-    // Set cooldown immediately when triggered
-    setOnCoolDown(true);
-    setCoolDownRemaining(settings.coolDownDelay);
-    
-    // Automatically turn off alarm state visually after 5 seconds
-    setTimeout(() => {
-      setIsAlarmPlaying(false);
-    }, 5000);
   };
 
   const handleManualLogDelete = async (id: string) => {
     setLogs(prev => prev.filter(l => l.id !== id));
     try {
-      const db = await getDB();
-      const transaction = db.transaction('motionLogs', 'readwrite');
-      transaction.objectStore('motionLogs').delete(id);
+      await deleteMotionLog(id);
     } catch (e) {
       console.error(e);
     }
@@ -349,11 +317,6 @@ export default function App() {
   const handleDeactivateStealth = async () => {
     setStealthActive(false);
 
-    // Release always-on screen back to default sleep settings
-    try {
-      await releaseWake();
-    } catch (e) {}
-
     // Automatically exit Fullscreen mode
     try {
       if (document.fullscreenElement) {
@@ -366,10 +329,21 @@ export default function App() {
 
   const handleEnterKiosk = async () => {
     setShowKioskGate(false);
+    updateReadiness({id: 'secure-context', status: window.isSecureContext ? 'pass' : 'fail', message: window.isSecureContext ? 'HTTPS' : 'HTTPS required'});
     
     try {
-      unlockAudioContext();
-    } catch (e) {}
+      const ready = await unlockAudioContext();
+      updateReadiness({id: 'audio', status: ready ? 'pass' : 'fail', message: ready ? (lang === 'uk' ? 'Аудіо готове' : 'Audio ready') : (lang === 'uk' ? 'Помилка аудіо' : 'Audio failed')});
+    } catch {
+      updateReadiness({id: 'audio', status: 'fail', message: lang === 'uk' ? 'Помилка аудіо' : 'Audio failed'});
+    }
+
+    try {
+      await verifyStorageWritable();
+      updateReadiness({id: 'storage', status: 'pass', message: lang === 'uk' ? 'Сховище готове' : 'Storage ready'});
+    } catch {
+      updateReadiness({id: 'storage', status: 'fail', message: lang === 'uk' ? 'Збій сховища' : 'Storage failed'});
+    }
 
     try {
       const docEl = document.documentElement;
@@ -381,12 +355,30 @@ export default function App() {
     }
 
     try {
-      if ('wakeLock' in navigator) {
-        await requestWake();
-      }
-    } catch (e) {}
+      const active = await requestWake();
+      updateReadiness({id: 'wake-lock', status: active ? 'pass' : 'warning', message: active ? 'Wake Lock' : 'Wake Lock unavailable'});
+    } catch {
+      updateReadiness({id: 'wake-lock', status: 'warning', message: 'Wake Lock unavailable'});
+    }
+
+    try {
+      const persistent = await requestPersistentStorage();
+      setStoragePersistent(persistent);
+      updateReadiness({id: 'persistence', status: persistent ? 'pass' : 'warning', message: persistent ? (lang === 'uk' ? 'Дані захищено' : 'Storage persisted') : (lang === 'uk' ? 'Можливе очищення' : 'Eviction possible')});
+    } catch (error) {
+      console.warn('Persistent storage request failed:', error);
+    }
 
     setIsDetecting(true);
+  };
+
+  const handleCameraRuntimeStatus = (status: DetectorRuntimeStatus, error?: string | null) => {
+    const ready = status === 'ready' || status === 'armed' || status === 'playing' || status === 'cooldown' || status === 'triggered';
+    updateReadiness({
+      id: 'camera',
+      status: ready ? 'pass' : status === 'error' ? 'fail' : 'warning',
+      message: ready ? (lang === 'uk' ? 'Камера активна' : 'Camera active') : error || (lang === 'uk' ? 'Камера запускається' : 'Camera starting'),
+    });
   };
 
   const saveAppName = () => {
@@ -548,6 +540,12 @@ export default function App() {
                   </button>
                 </div>
               </div>
+              {storagePersistent === false && (
+                <p className="w-full max-w-sm mx-auto px-4 mt-2 text-[10px] text-amber-400 text-center">
+                  {lang === 'uk' ? 'Android не гарантував постійне сховище. Не очищайте дані застосунку.' : 'Android did not grant persistent storage. Do not clear app data.'}
+                </p>
+              )}
+              <ReadinessPanel checks={readinessChecks} lang={lang} />
             </>
           )}
 
@@ -575,10 +573,12 @@ export default function App() {
                 isAlarmPlaying={isAlarmPlaying}
                 setIsAlarmPlaying={setIsAlarmPlaying}
                 minimalMode={minimalMode}
+                lowPowerMode={stealthActive}
                 onOpenLogs={() => setActiveTab('events')}
+                onRuntimeStatusChange={handleCameraRuntimeStatus}
               />
 
-              {/* Compact Custom audios block + Google Drive dropdown inside minimal layout */}
+              {/* Compact local audio selector */}
               <div className="pt-2">
                 <MinimalFilesList
                   settings={settings}
@@ -639,7 +639,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* 5. Fixed Full-viewport Stealth Saver simulated off-screen overlay */}
+      {/* 5. Fixed full-viewport low-power overlay */}
       {stealthActive && (
         <StealthOverlay
           lang={lang}
@@ -744,25 +744,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Dynamic Background Sync Notification Toast */}
-      {syncStatus.lastMessage && (
-        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-md bg-slate-900 border border-[#F27D26]/30 text-slate-100 p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-in z-[200]">
-          <div className="w-8 h-8 rounded-full bg-[#F27D26]/10 flex items-center justify-center shrink-0">
-            <Radio className="w-4 h-4 text-[#F27D26] animate-pulse" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-sans font-bold leading-normal text-slate-100">
-              {syncStatus.lastMessage}
-            </p>
-          </div>
-          <button
-            onClick={() => setSyncStatus(prev => ({ ...prev, lastMessage: null }))}
-            className="text-gray-400 hover:text-white cursor-pointer p-1 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <PwaUpdatePrompt canUpdate={!isDetecting} lang={lang} />
         </>
       )}
     </div>

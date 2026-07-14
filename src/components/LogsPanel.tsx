@@ -311,8 +311,8 @@ export default function LogsPanel({ logs, onLogDeleted, onClearAll, lang, settin
             <div className="p-3 bg-black/60 border-t border-gray-800 text-center">
               <p className="text-[10px] text-gray-500 font-sans leading-normal">
                 {lang === 'uk' 
-                  ? 'Знімок надійно збережено у локальній базі даних пристрою Galaxy A07.'
-                  : 'Screenshot is securely stored within your Galaxy A07 local database.'}
+                  ? 'Знімок збережено лише у локальній базі даних цього пристрою.'
+                  : 'The snapshot is stored only in this device’s local database.'}
               </p>
             </div>
           </div>

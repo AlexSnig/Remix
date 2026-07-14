@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, CameraOff, RefreshCw, AlertTriangle, Play, ShieldAlert, Check, List, Settings, Music, Square } from 'lucide-react';
-import { DetectorSettings, MotionLog } from '../types';
+import { CustomAudioFile, DetectorRuntimeStatus, DetectorSettings, MotionLog } from '../types';
 import { saveMotionLog, performAutoCacheClean } from '../utils/indexedDB';
 import { playPresetSound, playCustomSound, isAudioCurrentlyPlaying, stopAllAudio } from '../utils/audio';
 import { TRANSLATIONS, Language } from '../utils/lang';
 import SettingsPanel from './SettingsPanel';
+import {analyzeMotion, calibratedThreshold, shouldTriggerMotion} from '../utils/motionDetection';
 
 interface CameraDetectorProps {
   settings: DetectorSettings;
-  customAudioData: string | null;
-  onCustomAudioSaved: (data: string | null) => void;
+  customAudioData: CustomAudioFile | null;
+  onCustomAudioSaved: (data: CustomAudioFile | null) => void;
   onLogTriggered: (log: MotionLog) => void;
   isDetecting: boolean;
   setIsDetecting: (val: boolean) => void;
@@ -24,6 +25,8 @@ interface CameraDetectorProps {
   isAlarmPlaying: boolean;
   setIsAlarmPlaying: (val: boolean) => void;
   minimalMode?: boolean;
+  lowPowerMode?: boolean;
+  onRuntimeStatusChange?: (status: DetectorRuntimeStatus, error?: string | null) => void;
 }
 
 export default function CameraDetector({
@@ -44,13 +47,14 @@ export default function CameraDetector({
   isAlarmPlaying,
   setIsAlarmPlaying,
   minimalMode = false,
+  lowPowerMode = false,
+  onRuntimeStatusChange,
 }: CameraDetectorProps) {
   const t = TRANSLATIONS[lang];
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const visibleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const hiddenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [currentDiffAmount, setCurrentDiffAmount] = useState<number>(0);
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
@@ -58,6 +62,17 @@ export default function CameraDetector({
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   const [showSliders, setShowSliders] = useState<boolean>(false);
   const [activeTrackName, setActiveTrackName] = useState<string>('');
+  const [runtimeStatus, setRuntimeStatus] = useState<DetectorRuntimeStatus>('idle');
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const runtimeCallbackRef = useRef(onRuntimeStatusChange);
+
+  useEffect(() => {
+    runtimeCallbackRef.current = onRuntimeStatusChange;
+  }, [onRuntimeStatusChange]);
+
+  useEffect(() => {
+    runtimeCallbackRef.current?.(runtimeStatus, cameraError);
+  }, [runtimeStatus, cameraError]);
 
   useEffect(() => {
     const updateActiveTrackName = async () => {
@@ -70,18 +85,8 @@ export default function CameraDetector({
           'air_raid': lang === 'uk' ? 'Повітряна тривога' : 'Air Raid Siren',
         };
         setActiveTrackName(presetNames[settings.audioPresetId] || settings.audioPresetId);
-      } else if (settings.customAudioId) {
-        try {
-          const { getCustomAudio } = await import('../utils/indexedDB');
-          const file = await getCustomAudio(settings.customAudioId);
-          if (file) {
-            setActiveTrackName(file.name);
-          } else {
-            setActiveTrackName(lang === 'uk' ? 'Невідомий файл з Диску' : 'Unknown Drive File');
-          }
-        } catch (e) {
-          setActiveTrackName(lang === 'uk' ? 'Аудіо з Диску' : 'Drive Audio');
-        }
+      } else if (customAudioData) {
+        setActiveTrackName(customAudioData.name);
       } else {
         setActiveTrackName(lang === 'uk' ? 'Сигнал за замовчуванням' : 'Default Signal');
       }
@@ -95,7 +100,7 @@ export default function CameraDetector({
     return () => {
       window.removeEventListener('custom-audios-updated', handleSyncUpdate);
     };
-  }, [settings.audioSourceType, settings.audioPresetId, settings.customAudioId, lang]);
+  }, [settings.audioSourceType, settings.audioPresetId, settings.customAudioId, customAudioData, lang]);
   
   // Auto hide sliders if no interaction for 15 seconds
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,11 +138,20 @@ export default function CameraDetector({
   const onCoolDownRef = useRef<boolean>(false);
   const isAudioPlayingRef = useRef<boolean>(false);
   const animationFrameRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryAttemptRef = useRef(0);
+  const lastUiUpdateRef = useRef(0);
+  const consecutiveFramesRef = useRef(0);
+  const calibrationSamplesRef = useRef<number[]>([]);
+  const lastFrameTimestampRef = useRef(0);
+  const calibrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isStartingRef = useRef<boolean>(false);
 
-  const customAudioDataRef = useRef<string | null>(customAudioData);
+  const customAudioDataRef = useRef<CustomAudioFile | null>(customAudioData);
   const zoomLevelRef = useRef<number>(zoomLevel);
+  const lowPowerModeRef = useRef(lowPowerMode);
 
   // Sync settings and states to refs
   useEffect(() => {
@@ -153,6 +167,10 @@ export default function CameraDetector({
   }, [zoomLevel]);
 
   useEffect(() => {
+    lowPowerModeRef.current = lowPowerMode;
+  }, [lowPowerMode]);
+
+  useEffect(() => {
     isDetectingRef.current = isDetecting;
     if (!isDetecting) {
       setCurrentDiffAmount(0);
@@ -162,104 +180,37 @@ export default function CameraDetector({
       isAudioPlayingRef.current = false;
       setIsAlarmPlaying(false);
       stopAllAudio();
+      setRuntimeStatus(isCameraActive ? 'ready' : 'idle');
+    } else if (isCameraActive) {
+      setRuntimeStatus('armed');
     }
   }, [isDetecting]);
 
   useEffect(() => {
     onCoolDownRef.current = onCoolDown;
+    if (onCoolDown) setRuntimeStatus('cooldown');
+    else if (isDetectingRef.current && isCameraActive) setRuntimeStatus('armed');
   }, [onCoolDown]);
 
   // Cooldown countdown is handled by App.tsx master timer
-
-  // Initialize and clean up Camera stream
-  const createSimulatedStream = (): MediaStream => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 640;
-    canvas.height = 480;
-    const ctx = canvas.getContext('2d');
-    
-    let frame = 0;
-    const intervalId = setInterval(() => {
-      if (!ctx) return;
-      frame++;
-      
-      // Draw grid pattern
-      ctx.fillStyle = '#0a0f1d'; // dark background
-      ctx.fillRect(0, 0, 640, 480);
-      
-      // Horizontal scanning laser line
-      const laserY = (frame * 4) % 480;
-      
-      // Draw subtle grid lines
-      ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 640; i += 40) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, 480);
-        ctx.stroke();
-      }
-      for (let j = 0; j < 480; j += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, j);
-        ctx.lineTo(640, j);
-        ctx.stroke();
-      }
-      
-      // Moving simulated target to create motion
-      const x = 320 + Math.cos(frame * 0.04) * 160;
-      const y = 240 + Math.sin(frame * 0.02) * 100;
-      
-      // Target marker
-      ctx.strokeStyle = '#F27D26';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, 15 + Math.sin(frame * 0.1) * 3, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Scanning line
-      ctx.strokeStyle = 'rgba(242, 125, 38, 0.3)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, laserY);
-      ctx.lineTo(640, laserY);
-      ctx.stroke();
-      
-      // Overlay text
-      ctx.fillStyle = '#64748b';
-      ctx.font = '12px monospace';
-      ctx.fillText(lang === 'uk' ? 'СИМУЛЬОВАНИЙ ПОТІК КАМЕРИ' : 'SIMULATED CAMERA FEED', 20, 35);
-      ctx.fillText(`SYSTEM OK • FRAME ${frame}`, 20, 55);
-      ctx.fillText(lang === 'uk' ? 'ПОШУК РУХУ...' : 'SEARCHING FOR MOTION...', 20, 75);
-    }, 1000 / 12);
-    
-    const stream = (canvas as any).captureStream ? (canvas as any).captureStream(12) : null;
-    if (stream) {
-      stream.getVideoTracks().forEach((track: any) => {
-        const originalStop = track.stop;
-        track.stop = () => {
-          clearInterval(intervalId);
-          if (originalStop) originalStop.call(track);
-        };
-      });
-      return stream;
-    }
-    return new MediaStream();
-  };
 
   const startCamera = async (overrideFacingMode?: 'user' | 'environment') => {
     if (isStartingRef.current) return;
     isStartingRef.current = true;
 
-    const activeMode = overrideFacingMode || settings.cameraFacingMode;
+    const activeMode = overrideFacingMode || settingsRef.current.cameraFacingMode;
 
-    if (stream) {
+    if (streamRef.current) {
       stopCamera();
     }
     setCameraError(null);
     setIsCameraActive(false);
+    setRuntimeStatus(retryAttemptRef.current > 0 ? 'recovering' : 'starting');
 
     try {
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        throw new DOMException('Camera requires HTTPS or localhost', 'SecurityError');
+      }
       // First try standard facingMode request to acquire permissions (which unlocks camera labels)
       const initialConstraints: MediaStreamConstraints = {
         video: {
@@ -271,7 +222,6 @@ export default function CameraDetector({
       };
 
       let mediaStream: MediaStream;
-      let usingSimulatedCamera = false;
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia(initialConstraints);
       } catch (e) {
@@ -282,20 +232,16 @@ export default function CameraDetector({
             audio: false
           });
         } catch (e2) {
-          console.warn("No physical camera device found. Starting simulated scanning camera.", e2);
-          mediaStream = createSimulatedStream();
-          usingSimulatedCamera = true;
+          throw e2;
         }
       }
 
       // Permissions are unlocked, so we can check available devices and labels
       let devices: MediaDeviceInfo[] = [];
-      if (!usingSimulatedCamera) {
-        try {
-          devices = await navigator.mediaDevices.enumerateDevices();
-        } catch (e) {
-          console.warn("Failed to enumerate devices", e);
-        }
+      try {
+        devices = await navigator.mediaDevices.enumerateDevices();
+      } catch (e) {
+        console.warn("Failed to enumerate devices", e);
       }
 
       const videoDevices = devices.filter(d => d.kind === 'videoinput');
@@ -380,14 +326,14 @@ export default function CameraDetector({
       }
 
       mediaStream.getVideoTracks().forEach(track => {
-        track.onended = () => {
-          setIsCameraActive(false);
-          setStream(null);
-        };
+        track.onended = () => scheduleCameraRecovery('Camera stream ended');
+        track.onmute = () => scheduleCameraRecovery('Camera stream muted', 2000);
       });
 
-      setStream(mediaStream);
+      streamRef.current = mediaStream;
       setIsCameraActive(true);
+      retryAttemptRef.current = 0;
+      setRuntimeStatus(isDetectingRef.current ? 'armed' : 'ready');
       
       // Use requestAnimationFrame for smoother operation on Safari/iOS
       if (videoRef.current) {
@@ -410,16 +356,19 @@ export default function CameraDetector({
         setCameraError(`${t.cameraConnectionError} ${err.message || ''}`);
       }
       setIsDetecting(false);
+      setRuntimeStatus('error');
     } finally {
       isStartingRef.current = false;
     }
   };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
+    streamRef.current?.getTracks().forEach(track => {
+      track.onended = null;
+      track.onmute = null;
+      track.stop();
+    });
+    streamRef.current = null;
     setIsCameraActive(false);
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -427,15 +376,51 @@ export default function CameraDetector({
     prevFrameRef.current = null;
   };
 
+  const scheduleCameraRecovery = (reason: string, minimumDelay = 500) => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    stopCamera();
+    setCameraError(reason);
+    setRuntimeStatus('recovering');
+    if (document.visibilityState !== 'visible') return;
+    const delay = Math.max(minimumDelay, Math.min(8000, 500 * 2 ** retryAttemptRef.current));
+    retryAttemptRef.current += 1;
+    retryTimerRef.current = setTimeout(() => startCamera(), delay);
+  };
+
   // Re-start camera when facingMode changes
   useEffect(() => {
     startCamera();
     return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       stopCamera();
     };
   }, [settings.cameraFacingMode]);
 
-  // Main Motion Detection Processing Loop (runs at 10-12 FPS to stay extremely battery friendly on Galaxy A07)
+  useEffect(() => {
+    const recoverWhenVisible = () => {
+      if (document.visibilityState === 'visible' && !streamRef.current) startCamera();
+    };
+    navigator.mediaDevices?.addEventListener?.('devicechange', recoverWhenVisible);
+    document.addEventListener('visibilitychange', recoverWhenVisible);
+    window.addEventListener('pageshow', recoverWhenVisible);
+    return () => {
+      navigator.mediaDevices?.removeEventListener?.('devicechange', recoverWhenVisible);
+      document.removeEventListener('visibilitychange', recoverWhenVisible);
+      window.removeEventListener('pageshow', recoverWhenVisible);
+    };
+  }, []);
+
+  useEffect(() => {
+    const watchdog = setInterval(() => {
+      if (document.visibilityState !== 'visible' || !isCameraActive) return;
+      if (lastFrameTimestampRef.current > 0 && performance.now() - lastFrameTimestampRef.current > 5000) {
+        scheduleCameraRecovery('Camera frames stopped');
+      }
+    }, 3000);
+    return () => clearInterval(watchdog);
+  }, [isCameraActive]);
+
+  // Main motion loop runs at 10 FPS; React UI updates are limited to 2 FPS.
   useEffect(() => {
     let lastProcessTime = 0;
     const processFrame = () => {
@@ -451,6 +436,7 @@ export default function CameraDetector({
         return;
       }
       lastProcessTime = now;
+      lastFrameTimestampRef.current = now;
 
       const video = videoRef.current;
       const visibleCanvas = visibleCanvasRef.current;
@@ -482,12 +468,13 @@ export default function CameraDetector({
       const sx = (svWidth - sWidth) / 2;
       const sy = (svHeight - sHeight) / 2;
 
-      // Draw active camera crop on visible canvas
-      try {
-        vCtx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, width, height);
-      } catch (err) {
-        animationFrameRef.current = requestAnimationFrame(processFrame);
-        return;
+      if (!lowPowerModeRef.current) {
+        try {
+          vCtx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, width, height);
+        } catch {
+          animationFrameRef.current = requestAnimationFrame(processFrame);
+          return;
+        }
       }
 
       // Draw to a very small canvas for diffing (extremely safe for CPU)
@@ -499,60 +486,27 @@ export default function CameraDetector({
       const data = frameData.data;
 
       if (prevFrameRef.current) {
-        const prevData = prevFrameRef.current;
-        let changedPixels = 0;
-        const totalPixels = diffWidth * diffHeight;
-
-        // Sensitivities map: lower sensitivity setting -> higher difference threshold
-        // Setting sensitivity 100 = threshold of 10, sensitivity 1 = threshold of 90
-        const activeSensitivity = settingsRef.current.sensitivity;
-        const diffThreshold = Math.max(10, 100 - activeSensitivity * 0.9);
-
-        // Motion bounding boxes accumulator
-        let minX = diffWidth, maxX = 0, minY = diffHeight, maxY = 0;
-        let diffPointsCount = 0;
-
-        for (let i = 0; i < data.length; i += 4) {
-          const rDiff = Math.abs(data[i] - prevData[i]);
-          const gDiff = Math.abs(data[i+1] - prevData[i+1]);
-          const bDiff = Math.abs(data[i+2] - prevData[i+2]);
-
-          // Average channel variation
-          const avgDiff = (rDiff + gDiff + bDiff) / 3;
-
-          if (avgDiff > diffThreshold) {
-            changedPixels++;
-            
-            // Map 1D index to small 2D canvas coordinates
-            const pixelIndex = i / 4;
-            const px = pixelIndex % diffWidth;
-            const py = Math.floor(pixelIndex / diffWidth);
-            
-            if (px < minX) minX = px;
-            if (px > maxX) maxX = px;
-            if (py < minY) minY = py;
-            if (py > maxY) maxY = py;
-            
-            diffPointsCount++;
-          }
+        const analysis = analyzeMotion(data, prevFrameRef.current, diffWidth, diffHeight, settingsRef.current.sensitivity, settingsRef.current.detectionZone);
+        const {percentageChanged, changedPixels: diffPointsCount, bounds} = analysis;
+        if (now - lastUiUpdateRef.current >= 500) {
+          setCurrentDiffAmount(Number(percentageChanged.toFixed(2)));
+          lastUiUpdateRef.current = now;
         }
 
-        const percentageChanged = (changedPixels / totalPixels) * 100;
-        // Apply responsive exponential smoothing to render numbers nicely in the UI
-        setCurrentDiffAmount(prev => Number((prev * 0.4 + percentageChanged * 0.6).toFixed(2)));
+        if (isCalibrating) calibrationSamplesRef.current.push(percentageChanged);
 
         // If movement is detected and exceeds noise threshold
         const noiseThreshold = settingsRef.current.noiseThreshold;
         
         // Render motion box overlays if there was any activity
-        if (diffPointsCount > 4 && isDetectingRef.current) {
+        if (diffPointsCount > 4 && bounds && isDetectingRef.current && !lowPowerModeRef.current) {
           // Scale coords back to visible canvas size
           const scaleX = width / diffWidth;
           const scaleY = height / diffHeight;
-          const rx = minX * scaleX;
-          const ry = minY * scaleY;
-          const rw = (maxX - minX + 1) * scaleX;
-          const rh = (maxY - minY + 1) * scaleY;
+          const rx = bounds.minX * scaleX;
+          const ry = bounds.minY * scaleY;
+          const rw = (bounds.maxX - bounds.minX + 1) * scaleX;
+          const rh = (bounds.maxY - bounds.minY + 1) * scaleY;
 
           // Draw indicator rectangle on visible feed
           vCtx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // Red-500
@@ -582,8 +536,16 @@ export default function CameraDetector({
           }
         }
 
-        if (percentageChanged >= noiseThreshold && isDetectingRef.current && !onCoolDownRef.current && !currentlyPlaying && !isAudioPlayingRef.current) {
-          handleMotionTriggered(visibleCanvas);
+        if (percentageChanged >= noiseThreshold && percentageChanged < settingsRef.current.globalChangeCeiling) {
+          consecutiveFramesRef.current += 1;
+        } else {
+          consecutiveFramesRef.current = 0;
+        }
+
+        if (shouldTriggerMotion(percentageChanged, noiseThreshold, settingsRef.current.globalChangeCeiling, consecutiveFramesRef.current, settingsRef.current.requiredConsecutiveFrames)
+          && isDetectingRef.current && !onCoolDownRef.current && !currentlyPlaying && !isAudioPlayingRef.current && !isCalibrating) {
+          consecutiveFramesRef.current = 0;
+          handleMotionTriggered(visibleCanvas, percentageChanged);
         }
       }
 
@@ -598,14 +560,20 @@ export default function CameraDetector({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isCameraActive]);
+  }, [isCameraActive, isCalibrating]);
 
   // Action on Triggered Detector
-  const handleMotionTriggered = async (visibleCanvas: HTMLCanvasElement) => {
+  const handleMotionTriggered = async (visibleCanvas: HTMLCanvasElement, motionPercent: number) => {
     // Block multiple triggers by setting audio playing flags immediately
     setIsAudioPlaying(true);
     isAudioPlayingRef.current = true;
     setIsAlarmPlaying(true);
+    setRuntimeStatus('triggered');
+
+    if (lowPowerModeRef.current && videoRef.current) {
+      const context = visibleCanvas.getContext('2d');
+      context?.drawImage(videoRef.current, 0, 0, visibleCanvas.width, visibleCanvas.height);
+    }
 
     // Capture instantaneous thumbnail from camera
     let thumbnail: string | null = null;
@@ -619,21 +587,27 @@ export default function CameraDetector({
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       timestamp: Date.now(),
       thumbnail,
+      motionPercent,
+      threshold: settingsRef.current.noiseThreshold,
     };
 
-    // Save strictly to local IndexedDB and report state back
-    await saveMotionLog(newLog);
+    // The alert must never depend on the log write succeeding.
     onLogTriggered(newLog);
+    const logPromise = saveMotionLog(newLog).catch(error => {
+      console.error('Motion log could not be persisted:', error);
+    });
 
     // Audio Playback
+    const volumeMultiplier = settingsRef.current.audioVolume / 100;
     try {
-      const volumeMultiplier = (settingsRef.current.audioVolume ?? 100) / 100;
       if (settingsRef.current.audioSourceType === 'preset') {
+        setRuntimeStatus('playing');
         playPresetSound(settingsRef.current.audioPresetId, 4, volumeMultiplier);
       } else {
         const audioData = customAudioDataRef.current;
         if (audioData) {
-          await playCustomSound(audioData, undefined, volumeMultiplier);
+          setRuntimeStatus('playing');
+          await playCustomSound(audioData.blob, audioData.name, volumeMultiplier);
         } else {
           // Fallback to digital alarm preset if custom sound was unreadable/empty
           playPresetSound('beep_short', 4, volumeMultiplier);
@@ -641,7 +615,10 @@ export default function CameraDetector({
       }
     } catch (e) {
       console.error("Audio playback failure:", e);
+      playPresetSound('beep_short', 1, volumeMultiplier);
     }
+
+    await logPromise;
 
     // Auto cleanup of old caches
     if (settingsRef.current.autoCleanCacheEnabled) {
@@ -667,7 +644,7 @@ export default function CameraDetector({
           playPresetSound(settings.audioPresetId, 4, volumeMultiplier);
         } else {
           if (customAudioData) {
-            await playCustomSound(customAudioData, undefined, volumeMultiplier);
+            await playCustomSound(customAudioData.blob, customAudioData.name, volumeMultiplier);
           } else {
             playPresetSound('beep_short', 4, volumeMultiplier);
           }
@@ -679,6 +656,22 @@ export default function CameraDetector({
       }
     }
   };
+
+  const startCalibration = () => {
+    if (calibrationTimerRef.current) clearTimeout(calibrationTimerRef.current);
+    calibrationSamplesRef.current = [];
+    setIsCalibrating(true);
+    calibrationTimerRef.current = setTimeout(() => {
+      const threshold = calibratedThreshold(calibrationSamplesRef.current);
+      onSettingsChange({...settingsRef.current, noiseThreshold: threshold, calibratedNoiseFloor: threshold});
+      setIsCalibrating(false);
+      calibrationTimerRef.current = null;
+    }, 10000);
+  };
+
+  useEffect(() => () => {
+    if (calibrationTimerRef.current) clearTimeout(calibrationTimerRef.current);
+  }, []);
 
   const toggleFacingMode = () => {
     const nextMode = settings.cameraFacingMode === 'user' ? 'environment' : 'user';
@@ -747,7 +740,7 @@ export default function CameraDetector({
               <div className="space-y-4 px-4 max-w-sm flex flex-col items-center">
                 <p className="text-red-450 text-xs font-sans leading-normal">{cameraError}</p>
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => startCamera()}
                   className="font-sans font-black text-xs bg-red-950/80 border border-red-500/40 hover:bg-red-900 hover:text-white text-red-300 py-2.5 px-4 rounded-xl active:scale-95 transition-all select-none cursor-pointer inline-flex items-center gap-1.5 shadow-md animate-bounce"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -762,11 +755,23 @@ export default function CameraDetector({
           </div>
         )}
 
+        {isCameraActive && settings.detectionZone.width < 1 && (
+          <div
+            className="absolute z-20 border border-dashed border-[#F27D26]/70 pointer-events-none rounded-lg"
+            style={{
+              left: `${settings.detectionZone.x * 100}%`,
+              top: `${settings.detectionZone.y * 100}%`,
+              width: `${settings.detectionZone.width * 100}%`,
+              height: `${settings.detectionZone.height * 100}%`,
+            }}
+          />
+        )}
+
         {/* Hot Live Sensitivity Bar overlay - FOREGROUND z-50 */}
         {isCameraActive && (
           <div className="absolute top-3 left-3 right-3 bg-black/90 backdrop-blur-md rounded-xl py-2 px-3 border border-gray-800 flex flex-col gap-1.5 z-55">
             <div className="flex justify-between items-center text-xs font-sans">
-              <span className="text-gray-450 font-semibold">{t.currentChange}</span>
+              <span className="text-gray-450 font-semibold">{t.currentChange} · {runtimeStatus.toUpperCase()}</span>
               <span className={`font-mono font-bold ${currentDiffAmount >= settings.noiseThreshold ? 'text-red-500 animate-pulse' : 'text-zinc-300'}`}>
                 {currentDiffAmount.toFixed(1)}%
               </span>
@@ -918,6 +923,17 @@ export default function CameraDetector({
             >
               
               {/* 1. Задержка (Scanning Delay) */}
+              <button
+                type="button"
+                disabled={isCalibrating || isDetecting}
+                onClick={startCalibration}
+                className="h-9 rounded-xl border border-[#F27D26]/30 bg-[#F27D26]/10 text-[#F27D26] text-[10px] font-black disabled:opacity-40"
+              >
+                {isCalibrating
+                  ? (lang === 'uk' ? 'КАЛІБРУВАННЯ 10 СЕКУНД…' : 'CALIBRATING FOR 10 SECONDS…')
+                  : (lang === 'uk' ? 'АВТОКАЛІБРУВАТИ ПОРІГ' : 'AUTO-CALIBRATE THRESHOLD')}
+              </button>
+
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-gray-300 font-bold leading-none">
                   <span>{lang === 'uk' ? 'Затримка' : 'Delay'}</span>
