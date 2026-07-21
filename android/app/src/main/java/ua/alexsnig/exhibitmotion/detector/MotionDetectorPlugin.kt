@@ -5,7 +5,12 @@ import android.app.Activity
 import android.content.Intent
 import android.content.IntentFilter
 import android.database.Cursor
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.os.BatteryManager
+import android.os.Handler
+import android.os.Looper
 import android.provider.OpenableColumns
 import androidx.activity.result.ActivityResult
 import androidx.core.content.FileProvider
@@ -44,13 +49,57 @@ import ua.alexsnig.exhibitmotion.kiosk.KioskRuntimeState
 class MotionDetectorPlugin : Plugin() {
     private val pluginScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pendingPermissionActions = ConcurrentHashMap<String, String>()
+    private var routeWatch: AudioDeviceCallback? = null
 
     override fun load() {
         MotionEventBus.attach(this)
     }
 
+    /** A 3.5 mm output has no identity on Android: every wired speaker reports
+     * the same generic device, so an approval can only ever mean "some wired
+     * output". That is deliberate, because a commissioned exhibit has to arm
+     * itself after a power cut with nobody present. It does mean a stored
+     * approval survives swapping the cable, so while the operator panel is on
+     * screen — that is, during commissioning — treat losing the route as
+     * invalidating the sound test and make the operator hear the new speaker.
+     * Unattended boot resume is unaffected: nothing is unplugged there. */
+    override fun handleOnResume() {
+        if (routeWatch != null) return
+        val audioManager = context.getSystemService(AudioManager::class.java) ?: return
+        val callback = object : AudioDeviceCallback() {
+            override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+                invalidateRouteIfDisconnected()
+            }
+        }
+        audioManager.registerAudioDeviceCallback(callback, Handler(Looper.getMainLooper()))
+        routeWatch = callback
+    }
+
+    override fun handleOnPause() {
+        routeWatch?.let { context.getSystemService(AudioManager::class.java)?.unregisterAudioDeviceCallback(it) }
+        routeWatch = null
+    }
+
+    private fun invalidateRouteIfDisconnected() {
+        pluginScope.launch {
+            val store = DetectorStore.get(context)
+            val settings = store.loadSettings()
+            val route = AudioRouteMonitor(context) {}.resolve(
+                settings.preferredBluetoothDeviceId,
+                settings.preferredBluetoothDeviceName,
+            )
+            if (route.kind != AudioRouteKind.UNAVAILABLE) return@launch
+            if (store.loadVerifiedAudioRoute() == null) return@launch
+            // Only the route approval is withdrawn. Swapping a cable during
+            // commissioning does not disprove that motion triggers playback,
+            // so the operator re-runs the sound test alone, not the whole wizard.
+            store.clearVerifiedAudioRoute(clearMotionTest = false)
+        }
+    }
+
     override fun handleOnDestroy() {
         MotionEventBus.detach(this)
+        handleOnPause()
         pluginScope.cancel()
     }
 
@@ -225,6 +274,20 @@ class MotionDetectorPlugin : Plugin() {
 
     @PluginMethod
     fun playTest(call: PluginCall) = runWithCameraPermission(call, MotionDetectorService.ACTION_TEST_AUDIO)
+
+    /** Route approval is an operator judgement about audible sound, so it needs
+     * no camera permission and must not wait for a long narration to end. */
+    @PluginMethod
+    fun confirmAudioRoute(call: PluginCall) {
+        MotionDetectorService.command(context, MotionDetectorService.ACTION_CONFIRM_AUDIO)
+        call.resolve(statusData(DetectorRuntime.current()))
+    }
+
+    @PluginMethod
+    fun cancelAudioTest(call: PluginCall) {
+        MotionDetectorService.command(context, MotionDetectorService.ACTION_CANCEL_AUDIO)
+        call.resolve(statusData(DetectorRuntime.current()))
+    }
 
     @PluginMethod
     fun calibrate(call: PluginCall) = runWithCameraPermission(call, MotionDetectorService.ACTION_CALIBRATE)

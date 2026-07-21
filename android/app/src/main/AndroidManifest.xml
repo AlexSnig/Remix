@@ -8,6 +8,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- A commissioned exhibit must recover its approved Bluetooth speaker
+         after a power cut with nobody present. BLUETOOTH_CONNECT is what lets
+         the app read adapter state and turn the radio back on; a Device Owner
+         is still allowed to do that on Android 13+. Never used to scan for or
+         pair with new devices. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- Camera availability is verified explicitly during commissioning and
          startup so unsupported hardware produces a visible operator error. -->

@@ -1,7 +1,9 @@
 package ua.alexsnig.exhibitmotion.detector
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Service
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -80,6 +82,7 @@ class MotionDetectorService : LifecycleService() {
     private var cameraWatchdogJob: Job? = null
     @Volatile private var isCalibrating = false
     @Volatile private var isTestingAudio = false
+    @Volatile private var routeTestStartedAtMs = 0L
     @Volatile private var routeVerified = false
     @Volatile private var motionTriggeredInCurrentRun = false
     @Volatile private var startedFromAutoResume = false
@@ -116,15 +119,57 @@ class MotionDetectorService : LifecycleService() {
             }
             ACTION_STOP -> stopDetector("Датчик зупинено оператором")
             ACTION_TEST_AUDIO -> playRouteTest()
+            ACTION_CONFIRM_AUDIO -> confirmRouteTest()
+            ACTION_CANCEL_AUDIO -> cancelRouteTest()
             ACTION_CALIBRATE -> startCalibration()
         }
         return Service.START_NOT_STICKY
     }
 
+    /** A Bluetooth exhibit has to come back on its own after a power cut. The
+     * radio may boot off, and Android reconnects a bonded speaker only once the
+     * adapter is on, so switch it on and wait for the approved device to appear.
+     * There is no public API to force an A2DP connection, so this relies on
+     * Android's own reconnect to a bonded device and simply gives it time.
+     * Never scans and never pairs: only an already approved speaker qualifies. */
+    // hasBluetoothConnectPermission() guards every adapter call below; lint
+    // cannot follow the check through a helper.
+    @SuppressLint("MissingPermission")
+    private suspend fun awaitApprovedBluetoothRoute(): AudioRoute {
+        var route = resolveRoute()
+        if (route.kind != AudioRouteKind.UNAVAILABLE) return route
+        val verified = store.loadVerifiedAudioRoute() ?: return route
+        if (verified.kind != AudioRouteKind.BLUETOOTH) return route
+
+        if (!hasBluetoothConnectPermission()) {
+            recordAutoStartResult("waiting_for_route", "Немає дозволу Bluetooth для автопідключення колонки")
+            return route
+        }
+        val adapter = getSystemService(BluetoothManager::class.java)?.adapter ?: return route
+        if (!adapter.isEnabled) {
+            transition(DetectorStatus.STARTING, "Вмикаю Bluetooth для затвердженої колонки", route)
+            @Suppress("DEPRECATION")
+            val accepted = runCatching { adapter.enable() }.getOrDefault(false)
+            if (!accepted) {
+                // Only a Device Owner may switch the radio on from Android 13.
+                recordAutoStartResult("waiting_for_route", "Не вдалося увімкнути Bluetooth автоматично")
+                return route
+            }
+        }
+        transition(DetectorStatus.STARTING, "Очікую підключення колонки ${verified.bluetoothName ?: ""}".trim(), route)
+        val deadline = SystemClock.elapsedRealtime() + BLUETOOTH_RECONNECT_TIMEOUT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            delay(BLUETOOTH_POLL_INTERVAL_MS)
+            route = resolveRoute()
+            if (store.isAudioRouteVerified(route)) return route
+        }
+        return resolveRoute()
+    }
+
     private fun startArmedRun() {
         serviceScope.launch {
             settings = store.loadSettings()
-            val route = resolveRoute()
+            val route = awaitApprovedBluetoothRoute()
             routeVerified = store.isAudioRouteVerified(route)
             when {
                 !hasCameraPermission() -> fail("Доступ до камери не надано")
@@ -183,9 +228,90 @@ class MotionDetectorService : LifecycleService() {
                 route.kind == AudioRouteKind.UNAVAILABLE -> audioRouteLost("Звук недоступний: тест не розпочато")
                 else -> {
                     isTestingAudio = true
-                    transition(DetectorStatus.PLAYING, "Тест звуку через ${route.displayName}", route)
+                    routeTestStartedAtMs = SystemClock.elapsedRealtime()
+                    transition(
+                        DetectorStatus.PLAYING,
+                        "Тест звуку через ${route.displayName}. Підтвердьте, коли почуєте звук",
+                        route,
+                    )
                     startPlayback(route)
                 }
+            }
+        }
+    }
+
+    /** The operator, not the file length, decides when a route test succeeded.
+     * Narration can run for minutes, and only a person can confirm that the
+     * approved speaker is actually audible. */
+    private fun confirmRouteTest() {
+        if (!isTestingAudio) return
+        if (SystemClock.elapsedRealtime() - routeTestStartedAtMs < MIN_ROUTE_TEST_MS) {
+            transition(
+                DetectorStatus.PLAYING,
+                "Дослухайте ще кілька секунд, перш ніж підтверджувати",
+                resolveRoute(),
+            )
+            return
+        }
+        completeRouteTest(resolveRoute())
+    }
+
+    /** Shared by operator confirmation and by a file that played to its end. */
+    private fun completeRouteTest(route: AudioRoute) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            playerScope.launch { completeRouteTest(route) }
+            return
+        }
+        player?.release()
+        player = null
+        if (route.kind == AudioRouteKind.UNAVAILABLE) {
+            isTestingAudio = false
+            routeTestStartedAtMs = 0L
+            audioRouteLost("Аудіомаршрут зник під час тесту")
+            return
+        }
+        serviceScope.launch {
+            val verified = store.saveVerifiedAudioRoute(route)
+            if (verified == null) {
+                withContext(Dispatchers.Main.immediate) {
+                    isTestingAudio = false
+                    routeTestStartedAtMs = 0L
+                    fail("Не вдалося зберегти перевірку аудіомаршруту")
+                }
+                return@launch
+            }
+            if (route.kind == AudioRouteKind.BLUETOOTH) {
+                settings = settings.copy(
+                    preferredBluetoothDeviceId = route.deviceId,
+                    preferredBluetoothDeviceName = route.name,
+                )
+                store.saveSettings(settings)
+            }
+            withContext(Dispatchers.Main.immediate) {
+                isTestingAudio = false
+                routeTestStartedAtMs = 0L
+                routeVerified = true
+                transition(DetectorStatus.IDLE, "Тест звуку успішний: ${route.displayName}", route)
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+        }
+    }
+
+    private fun cancelRouteTest() {
+        if (!isTestingAudio) return
+        isTestingAudio = false
+        routeTestStartedAtMs = 0L
+        player?.release()
+        player = null
+        serviceScope.launch {
+            // A failed test must never leave an earlier approval in place.
+            store.clearVerifiedAudioRoute()
+            withContext(Dispatchers.Main.immediate) {
+                routeVerified = false
+                transition(DetectorStatus.IDLE, "Тест звуку скасовано", resolveRoute())
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
         }
     }
@@ -387,30 +513,7 @@ class MotionDetectorService : LifecycleService() {
         player?.release()
         player = null
         if (isTestingAudio) {
-            serviceScope.launch {
-                val verified = store.saveVerifiedAudioRoute(route)
-                if (verified == null) {
-                    withContext(Dispatchers.Main.immediate) {
-                        isTestingAudio = false
-                        fail("Не вдалося зберегти перевірку аудіомаршруту")
-                    }
-                    return@launch
-                }
-                if (route.kind == AudioRouteKind.BLUETOOTH) {
-                    settings = settings.copy(
-                        preferredBluetoothDeviceId = route.deviceId,
-                        preferredBluetoothDeviceName = route.name,
-                    )
-                    store.saveSettings(settings)
-                }
-                withContext(Dispatchers.Main.immediate) {
-                    isTestingAudio = false
-                    routeVerified = true
-                    transition(DetectorStatus.IDLE, "Тест звуку успішний: ${route.displayName}", route)
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf()
-                }
-            }
+            completeRouteTest(route)
             return
         }
         cooldownJob?.cancel()
@@ -620,6 +723,11 @@ class MotionDetectorService : LifecycleService() {
     private fun hasCameraPermission(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
+    private fun hasBluetoothConnectPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED
+
     private fun resolveRoute(): AudioRoute = routeMonitor.resolve(
         settings.preferredBluetoothDeviceId,
         settings.preferredBluetoothDeviceName,
@@ -686,6 +794,16 @@ class MotionDetectorService : LifecycleService() {
         const val ACTION_AUTO_START = "ua.alexsnig.exhibitmotion.action.AUTO_START"
         const val ACTION_STOP = "ua.alexsnig.exhibitmotion.action.STOP"
         const val ACTION_TEST_AUDIO = "ua.alexsnig.exhibitmotion.action.TEST_AUDIO"
+        const val ACTION_CONFIRM_AUDIO = "ua.alexsnig.exhibitmotion.action.CONFIRM_AUDIO"
+        const val ACTION_CANCEL_AUDIO = "ua.alexsnig.exhibitmotion.action.CANCEL_AUDIO"
+
+        /** Guards against confirming before any sound could be heard. */
+        private const val MIN_ROUTE_TEST_MS = 3_000L
+
+        /** Android reconnects a bonded speaker on its own; this is how long the
+         * exhibit waits for that before reporting it is missing. */
+        private const val BLUETOOTH_RECONNECT_TIMEOUT_MS = 30_000L
+        private const val BLUETOOTH_POLL_INTERVAL_MS = 1_000L
         const val ACTION_CALIBRATE = "ua.alexsnig.exhibitmotion.action.CALIBRATE"
         private const val ANALYSIS_WIDTH = 36
         private const val ANALYSIS_HEIGHT = 48

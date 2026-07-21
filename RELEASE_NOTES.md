@@ -1,5 +1,51 @@
 # Release notes
 
+## 1.3.0 — Operator-confirmed sound test and Bluetooth auto-recovery
+
+Driven by the physical acceptance test on the target Galaxy A07.
+
+### Route test is confirmed by the operator, not by the file ending
+
+Previously the sound test only counted once the narration played to its very
+end, so a four-minute recording had to be listened to in full and any early
+stop discarded the test. The service now plays the audio and waits for the
+operator to answer:
+
+- **"Чую звук"** approves the route. Enabled only after three seconds of
+  playback, enforced in the service (`MIN_ROUTE_TEST_MS`) as well as the UI,
+  so nobody can approve before sound could reach the speaker.
+- **"Не чую"** cancels and clears any stored approval, so a failed test can
+  never leave an earlier one standing.
+- A file that ends on its own still approves the route, as before.
+
+Only a person can confirm that the approved speaker is audible; a timer would
+have passed a muted speaker or a broken cable.
+
+### A swapped cable no longer keeps its tick during commissioning
+
+A 3.5 mm output has no identity on Android — every wired speaker reports the
+same generic device — so an AUX approval can only ever mean "some wired
+output". That is deliberate, because a commissioned exhibit has to arm itself
+after a power cut with nobody present. It did mean the tick survived swapping
+the cable. While the operator panel is on screen the app now watches audio
+devices and withdraws the route approval when the output disappears, so the
+operator hears the new speaker before arming. The motion test is kept: moving
+a cable does not disprove that motion triggers playback. Unattended boot
+resume is unaffected, since nothing is unplugged there.
+
+### Bluetooth exhibits recover on their own after a power cut
+
+Auto-start now switches the Bluetooth radio back on when the approved route is
+a speaker, and waits up to 30 seconds for that exact speaker to reconnect
+before reporting it missing. `BLUETOOTH_CONNECT` is declared and granted
+automatically during Device Owner commissioning; from Android 13 only a Device
+Owner may enable the radio, which the exhibit is.
+
+The approved speaker is still matched by name, so any speaker may be chosen
+during commissioning but only the approved one is ever used afterwards. There
+is no public API to force an A2DP connection, so this relies on Android's own
+reconnect to a bonded device; the app never scans and never pairs.
+
 ## 1.2.1 — Fix release-only camera permission crash
 
 Found on 2026-07-22 during the physical acceptance test on the target

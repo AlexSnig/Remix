@@ -119,6 +119,8 @@ interface MotionDetectorPlugin {
   saveSettings(options: { settings: DetectorSettings }): Promise<void>;
   importAudio(): Promise<ImportedNativeAudio>;
   playTest(): Promise<NativeDetectorSnapshot>;
+  confirmAudioRoute(): Promise<NativeDetectorSnapshot>;
+  cancelAudioTest(): Promise<NativeDetectorSnapshot>;
   calibrate(): Promise<NativeDetectorSnapshot>;
   finishMotionTest(): Promise<void>;
   getAudioRoute(): Promise<NativeAudioRoute>;

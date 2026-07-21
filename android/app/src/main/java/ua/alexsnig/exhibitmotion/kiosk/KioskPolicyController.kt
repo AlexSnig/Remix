@@ -68,6 +68,17 @@ object KioskPolicyController {
                 DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED,
             )
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Without this the exhibit cannot re-enable its own Bluetooth
+            // radio after a power cut, and a Bluetooth installation would sit
+            // silent until a person walked up to it.
+            dpm.setPermissionGrantState(
+                admin,
+                context.packageName,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED,
+            )
+        }
 
         // A secure credential prevents credential-encrypted audio/settings
         // from being available at cold boot. We never remove a PIN: the

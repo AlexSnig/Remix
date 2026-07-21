@@ -1,15 +1,18 @@
 # Project Memory
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 
 ## Current state
 
 - Repository: `https://github.com/AlexSnig/Remix`, branch `main`.
 - Product: premium fully local Android museum motion-sensor APK for a dedicated kiosk phone.
-- Current release: `1.2.1` (`versionCode` 4). Package `ua.alexsnig.exhibitmotion`. `v1.2.0` is tagged but its APK is defective — see the release-only R8 crash below.
+- Current release: `1.3.0` (`versionCode` 5). Package `ua.alexsnig.exhibitmotion`. `v1.2.0` is tagged but its APK is defective — see the release-only R8 crash below.
 - Release signing certificate SHA-256: `bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e` (RSA 4096, alias `exhibit-motion`, valid to 2053). Keystore lives outside the repo; Gradle credentials are in the gitignored `android/keystore.properties`.
 - Runtime: signed Capacitor APK; React is the local operator WebView and Kotlin owns production behavior. No server or network is required.
 - Audio: operator-imported local audio in app-private storage; only a verified AUX or named Bluetooth route is accepted, never the phone speaker.
+- Route approval is an operator judgement: the sound test plays the file and waits for "Чую звук" (enabled after three seconds, enforced natively and in the UI), rather than requiring a long narration to reach its end. Only a person can confirm a speaker is audible.
+- A 3.5 mm output has no identity on Android, so an AUX approval means "some wired output" and cannot be pinned to one speaker. That is required for unattended arming after a power cut. While the operator panel is open the approval is withdrawn when the output disappears, so a swapped cable is re-tested during commissioning. Bluetooth is matched by device name and stays strict.
+- Bluetooth exhibits re-enable the radio at auto-start and wait up to 30 s for the approved speaker. Only a Device Owner may enable the radio from Android 13, and there is no public API to force an A2DP connection, so this depends on Android reconnecting a bonded device.
 - Storage: Android DataStore owns settings/readiness and Room owns the bounded event log.
 - Camera: CameraX foreground service at 36 × 48 analysis and at most 10 FPS; no simulated or browser fallback exists in the APK.
 - Kiosk: Device Owner, persistent Home activity, Lock Task, operator PIN, visible-activity boot resume, and explicit ordinary-install behavior.
@@ -39,7 +42,7 @@ Keep rules for `com.getcapacitor.annotation.**` and the plugin reflection surfac
 
 ## Client handoff
 
-- The client delivery package is assembled outside this repository, so the signing key can never be committed. It holds the 1.2.0 APK, staff PDF, Device Owner guide, a verification report, a build guide, and the signing key in an isolated subfolder with its own checksums so it can be delivered separately over a secure channel. The maintainer keeps its location privately; it is deliberately not recorded here.
+- The client delivery package is assembled outside this repository, so the signing key can never be committed. It holds the release APK, staff PDF, Device Owner guide, a verification report, a build guide, and the signing key in an isolated subfolder with its own checksums so it can be delivered separately over a secure channel. The maintainer keeps its location privately; it is deliberately not recorded here.
 - Superseded 1.1.0 artifacts were removed from the repository root and archived offline. That build predates the tagged history and exists nowhere else.
 - The handoff keystore was verified end-to-end: re-signing an APK using only the files in the package reproduces the shipped certificate fingerprint exactly.
 

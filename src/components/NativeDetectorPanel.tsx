@@ -86,6 +86,7 @@ const COPY = {
     camera: '1. Камера', cameraAction: 'Надати доступ до камери', cameraDone: 'Доступ до камери надано',
     audio: '2. Локальне аудіо', import: 'Імпортувати аудіо', noAudio: 'Файл ще не вибрано',
     route: '3. Тест маршруту', routeAction: 'Відтворити тест', routeDone: 'Маршрут перевірено',
+    routeConfirm: 'Чую звук', routeReject: 'Не чую', routeListening: 'Слухайте колонку та підтвердьте',
     volume: '4. Гучність', saveVolume: 'Зберегти та застосувати', volumeDone: 'Гучність застосовано', calibration: '5. Калібрування',
     calibrate: 'Почати калібрування (10 с)', calibrationDone: 'Калібрування завершено',
     motion: '6. Тест руху', motionAction: 'Почати тест руху', finishMotion: 'Завершити тест', cancelMotion: 'Скасувати тест', motionDone: 'Рух і відтворення підтверджено',
@@ -120,6 +121,7 @@ const COPY = {
     camera: '1. Camera', cameraAction: 'Grant camera access', cameraDone: 'Camera access granted',
     audio: '2. Local audio', import: 'Import audio', noAudio: 'No file selected yet',
     route: '3. Route test', routeAction: 'Play route test', routeDone: 'Route verified',
+    routeConfirm: 'I hear sound', routeReject: 'No sound', routeListening: 'Listen to the speaker, then confirm',
     volume: '4. Volume', saveVolume: 'Save and apply', volumeDone: 'Volume applied', calibration: '5. Calibration',
     calibrate: 'Start calibration (10 s)', calibrationDone: 'Calibration complete',
     motion: '6. Motion test', motionAction: 'Start motion test', finishMotion: 'Finish test', cancelMotion: 'Cancel test', motionDone: 'Motion and playback confirmed',
@@ -179,6 +181,10 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
   const [volumeDraft, setVolumeDraft] = useState(settings.audioVolume);
   const [motionTestRunning, setMotionTestRunning] = useState(false);
   const [motionTestTriggered, setMotionTestTriggered] = useState(false);
+  const [soundTestRunning, setSoundTestRunning] = useState(false);
+  // Mirrors the native MIN_ROUTE_TEST_MS guard so the operator cannot confirm
+  // a route before any sound could have reached the speaker.
+  const [soundTestConfirmable, setSoundTestConfirmable] = useState(false);
   const [busy, setBusy] = useState<StepId | 'arm' | 'diagnostics' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<NativeDiagnostics | null>(null);
@@ -199,8 +205,12 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     setSnapshot(next);
     setRoute(next.audioRoute);
     onRuntimeStatusChange(next);
-    if (soundTestRunningRef.current && next.status === 'idle' && !next.requiresSoundTest) {
+    if (soundTestRunningRef.current && next.status !== 'playing') {
+      // The native service leaves PLAYING once the test is approved, cancelled,
+      // or the route dropped. Any of those ends the listening prompt.
       soundTestRunningRef.current = false;
+      setSoundTestRunning(false);
+      setSoundTestConfirmable(false);
       setBusy(null);
     }
     if (calibrationRunningRef.current && next.status === 'idle') {
@@ -329,7 +339,23 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
       </StepCard>
       <StepCard title={t.route} complete={soundVerified}>
         <RouteBadge route={route} unavailable={t.unavailable} />
-        <button disabled={route.kind === 'unavailable'} type="button" onClick={() => run('route', async () => { soundTestRunningRef.current = true; await MotionDetector.playTest(); })} className="native-action mt-3">{busy === 'route' ? t.preparing : soundVerified ? t.routeDone : t.routeAction}</button>
+        {soundTestRunning ? (
+          <>
+            <p className="text-[10px] text-amber-300 mt-3">{t.routeListening}</p>
+            <div className="grid gap-2 sm:grid-cols-2 mt-2">
+              <button type="button" disabled={!soundTestConfirmable} onClick={() => run('route', async () => { await MotionDetector.confirmAudioRoute(); })} className="native-action">{t.routeConfirm}</button>
+              <button type="button" onClick={() => run('route', async () => { await MotionDetector.cancelAudioTest(); })} className="native-action">{t.routeReject}</button>
+            </div>
+          </>
+        ) : (
+          <button disabled={route.kind === 'unavailable'} type="button" onClick={() => run('route', async () => {
+            soundTestRunningRef.current = true;
+            setSoundTestRunning(true);
+            setSoundTestConfirmable(false);
+            window.setTimeout(() => setSoundTestConfirmable(true), 3000);
+            await MotionDetector.playTest();
+          })} className="native-action mt-3">{busy === 'route' ? t.preparing : soundVerified ? t.routeDone : t.routeAction}</button>
+        )}
       </StepCard>
       <StepCard title={t.volume} complete={volumeSaved}>
         <div className="flex items-center gap-3"><Volume2 className="w-4 h-4 text-[#F27D26]" /><input aria-label={t.volume} type="range" min="0" max="100" value={volumeDraft} onChange={event => setVolumeDraft(Number(event.target.value))} className="flex-1 accent-[#F27D26]" /><span className="w-9 text-right text-xs font-mono">{volumeDraft}%</span></div>
