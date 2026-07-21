@@ -6,6 +6,8 @@ Last updated: 2026-07-21
 
 - Repository: `https://github.com/AlexSnig/Remix`, branch `main`.
 - Product: premium fully local Android museum motion-sensor APK for a dedicated kiosk phone.
+- Current release: `1.2.0` (`versionCode` 3), tagged `v1.2.0`. Package `ua.alexsnig.exhibitmotion`.
+- Release signing certificate SHA-256: `bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e` (RSA 4096, alias `exhibit-motion`, valid to 2053). Keystore lives outside the repo; Gradle credentials are in the gitignored `android/keystore.properties`.
 - Runtime: signed Capacitor APK; React is the local operator WebView and Kotlin owns production behavior. No server or network is required.
 - Audio: operator-imported local audio in app-private storage; only a verified AUX or named Bluetooth route is accepted, never the phone speaker.
 - Storage: Android DataStore owns settings/readiness and Room owns the bounded event log.
@@ -29,6 +31,12 @@ Last updated: 2026-07-21
 - Audio is copied into app-private Android storage before arming.
 - Direct controlled installation is the release channel; Play Store and enterprise MDM distribution remain out of scope unless explicitly added later.
 
+## Client handoff
+
+- The client delivery package is assembled outside this repository, so the signing key can never be committed. It holds the 1.2.0 APK, staff PDF, Device Owner guide, a verification report, a build guide, and the signing key in an isolated subfolder with its own checksums so it can be delivered separately over a secure channel. The maintainer keeps its location privately; it is deliberately not recorded here.
+- Superseded 1.1.0 artifacts were removed from the repository root and archived offline. That build predates the tagged history and exists nowhere else.
+- The handoff keystore was verified end-to-end: re-signing an APK using only the files in the package reproduces the shipped certificate fingerprint exactly.
+
 ## Remaining production gate
 
-The production gates are a reproducible signed release build with the existing signing identity, Device Owner provisioning on the target phone, and an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, cold boot, route loss, app switching, camera permission loss, storage pressure, and repeated custom narration playback.
+A reproducible signed release build with the existing signing identity is now done and tagged. The remaining gates are Device Owner provisioning on the target phone and an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, cold boot, route loss, app switching, camera permission loss, storage pressure, and repeated custom narration playback. Automated results must never be presented as physical readiness.
