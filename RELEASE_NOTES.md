@@ -1,5 +1,29 @@
 # Release notes
 
+## 1.2.1 — Fix release-only camera permission crash
+
+Found on 2026-07-22 during the physical acceptance test on the target
+Galaxy A07 (`SM-A075F`, Android 15). Tapping "grant camera access" — the
+first step of the operator wizard — killed the app immediately.
+
+- R8 stripped the Capacitor annotation types from the minified release
+  build, so `PluginHandle.getPluginAnnotation()` returned `null` and the
+  first `getPermissionState("camera")` call raised a `NullPointerException`
+  on the `CapacitorPlugins` thread. Added keep rules for
+  `com.getcapacitor.annotation.**`, for `@CapacitorPlugin`-annotated
+  plugins and their reflective members, and for `MotionDetectorPlugin`
+  itself.
+- Verified by counting the annotation descriptors in the packaged DEX:
+  debug had 5 `@CapacitorPlugin` / 6 `@Permission` references, the broken
+  release had 0 / 0, and the fixed release has 1 / 2. After the fix the
+  wizard grants camera permission with no crash.
+
+This defect existed only in the signed release APK. Unit tests, lint,
+Playwright, and the emulator all pass against unminified code, and the
+earlier phone check ran a debug build, so nothing but installing the real
+release APK on a real phone could have caught it. Treat "the release APK
+runs the wizard end to end on the target device" as a required gate.
+
 ## 1.2.0 — Native operator surface and release hardening
 
 Released 2026-07-21 (`versionCode` 3). Signed with the same permanent
