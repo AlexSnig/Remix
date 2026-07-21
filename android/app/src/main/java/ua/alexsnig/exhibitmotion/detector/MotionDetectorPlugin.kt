@@ -2,6 +2,7 @@ package ua.alexsnig.exhibitmotion.detector
 
 import android.Manifest
 import android.app.Activity
+import android.app.admin.DevicePolicyManager
 import android.content.Intent
 import android.content.IntentFilter
 import android.database.Cursor
@@ -9,6 +10,7 @@ import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
@@ -564,6 +566,24 @@ class MotionDetectorPlugin : Plugin() {
         "Неправильний PIN оператора"
     }
 
+    /** There is no public "is it supported" query: the only honest probe is to
+     * read the policy as Device Owner and see whether the manufacturer
+     * implements it. Reported as a string so the technician can tell "not
+     * supported" apart from "not yet knowable". */
+    private fun factoryResetProtectionSupport(): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return "unsupported_android_version"
+        if (!KioskPolicyController.isDeviceOwner(context)) return "unknown_requires_device_owner"
+        val dpm = context.getSystemService(DevicePolicyManager::class.java)
+            ?: return "unknown_no_policy_service"
+        return runCatching {
+            dpm.getFactoryResetProtectionPolicy(KioskPolicyController.adminComponent(context))
+            "supported"
+        }.getOrElse { error ->
+            if (error is UnsupportedOperationException) "unsupported_by_manufacturer"
+            else "unknown_${error.javaClass.simpleName}"
+        }
+    }
+
     private suspend fun diagnosticJson(): JSObject {
         val store = DetectorStore.get(context)
         val counters = store.diagnostics()
@@ -582,6 +602,11 @@ class MotionDetectorPlugin : Plugin() {
         return JSObject().apply {
             put("versionName", version.versionName)
             put("versionCode", version.longVersionCode)
+            // A dedicated exhibit has no Google account, which is what normally
+            // arms factory reset protection. A Device Owner can arm it through
+            // policy instead, but only where the manufacturer implements the
+            // AOSP API, so the technician needs the real answer per device.
+            put("factoryResetProtection", factoryResetProtectionSupport())
             put("uptimeMs", android.os.SystemClock.elapsedRealtime())
             put("serviceStarts", counters.serviceStarts)
             put("lastStartedAtMs", counters.lastStartedAtMs)

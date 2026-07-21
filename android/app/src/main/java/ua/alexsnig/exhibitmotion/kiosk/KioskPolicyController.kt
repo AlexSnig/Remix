@@ -189,7 +189,7 @@ object KioskPolicyController {
         .getSystemService(ActivityManager::class.java)
         .lockTaskModeState != ActivityManager.LOCK_TASK_MODE_NONE
 
-    private fun adminComponent(context: Context) = ComponentName(context, ExhibitDeviceAdminReceiver::class.java)
+    fun adminComponent(context: Context) = ComponentName(context, ExhibitDeviceAdminReceiver::class.java)
 
     private fun mainActivityComponent(context: Context) = ComponentName(context, MainActivity::class.java)
 
