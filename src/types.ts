@@ -7,7 +7,9 @@ export type DetectorRuntimeStatus =
   | 'playing'
   | 'cooldown'
   | 'recovering'
-  | 'error';
+  | 'error'
+  | 'audio_route_lost'
+  | 'fault';
 
 export type ReadinessCheckStatus = 'pass' | 'warning' | 'fail';
 

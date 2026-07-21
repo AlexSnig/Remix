@@ -35,3 +35,15 @@
 .animate-fade-in {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+.native-action {
+  @apply w-full min-h-10 rounded-xl border border-[#F27D26]/30 bg-[#F27D26]/10 px-3 py-2 text-xs font-bold text-[#ff9b57] transition-colors hover:bg-[#F27D26]/20 disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+.native-icon-action {
+  @apply flex h-9 w-9 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[#F27D26] transition-colors hover:bg-gray-700;
+}
+
+.native-input {
+  @apply h-10 w-full rounded-xl border border-gray-700 bg-black px-3 text-sm text-slate-100 outline-none placeholder:text-gray-600 focus:border-[#F27D26]/70;
+}

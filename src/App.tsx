@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   ShieldAlert, ShieldCheck, EyeOff, Radio, VolumeX, Volume2,
   Smartphone, Check, Edit3, Trash2, Landmark, List, Settings, X, ArrowLeft, RefreshCw
@@ -15,12 +15,15 @@ import { Language, TRANSLATIONS } from './utils/lang';
 import {DEFAULT_SETTINGS, normalizeSettings} from './utils/settings';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import ReadinessPanel from './components/ReadinessPanel';
+import NativeDetectorPanel from './components/NativeDetectorPanel';
+import { isNativeMotionPlatform, type NativeDetectorSnapshot } from './native/motionDetector';
 
 const STORAGE_KEY = 'motion_detector_user_settings';
 const APP_NAME_STORAGE_KEY = 'motion_sensor_app_name';
 const LANG_STORAGE_KEY = 'motion_sensor_app_lang';
 
 export default function App() {
+  const usesNativeDetector = isNativeMotionPlatform();
   const [lang, setLang] = useState<Language>(() => {
     try {
       const savedLang = localStorage.getItem(LANG_STORAGE_KEY);
@@ -38,6 +41,9 @@ export default function App() {
   const [onCoolDown, setOnCoolDown] = useState<boolean>(false);
   const [coolDownRemaining, setCoolDownRemaining] = useState<number>(0);
   const [showKioskGate, setShowKioskGate] = useState<boolean>(() => {
+    // The Android APK starts from a native Home Activity. A React gate must
+    // never sit in front of a native boot resume or make it depend on a tap.
+    if (usesNativeDetector) return false;
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -51,6 +57,7 @@ export default function App() {
   });
   // Auto-resume Audio Context on first touch/click
   useEffect(() => {
+    if (usesNativeDetector) return;
     const resumeAudio = () => {
       try {
         unlockAudioContext();
@@ -64,7 +71,7 @@ export default function App() {
       window.removeEventListener('click', resumeAudio);
       window.removeEventListener('touchstart', resumeAudio);
     };
-  }, []);
+  }, [usesNativeDetector]);
   const [activeTab, setActiveTab] = useState<'sensor' | 'events'>('sensor');
   const [minimalMode, setMinimalMode] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -78,9 +85,9 @@ export default function App() {
   const [storagePersistent, setStoragePersistent] = useState<boolean | null>(null);
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
 
-  const updateReadiness = (check: ReadinessCheck) => {
+  const updateReadiness = useCallback((check: ReadinessCheck) => {
     setReadinessChecks(previous => [...previous.filter(item => item.id !== check.id), check]);
-  };
+  }, []);
 
   const requestWake = async (): Promise<boolean> => {
     wakeLockDesiredRef.current = true;
@@ -161,6 +168,18 @@ export default function App() {
 
   const t = TRANSLATIONS[lang];
 
+  useEffect(() => {
+    const usesDefaultName = appName === TRANSLATIONS.uk.appTitleDefault;
+    document.documentElement.lang = lang;
+    document.title = usesDefaultName ? t.appTitleDefault : appName;
+    document.querySelector('meta[name="description"]')?.setAttribute(
+      'content',
+      lang === 'uk'
+        ? 'Автономний датчик руху для музейного експонату'
+        : 'Offline motion detector for a museum exhibit',
+    );
+  }, [appName, lang, t.appTitleDefault]);
+
   // Initialize DB and load local logs on component mount
   useEffect(() => {
     // Attempt load settings from localstorage
@@ -182,7 +201,7 @@ export default function App() {
         console.warn("Could not retrieve IndexedDB logs history:", e);
       }
     };
-    initLogs();
+    if (!usesNativeDetector) initLogs();
 
     // Track fullscreen change events
     const onFullscreenChange = () => {
@@ -192,11 +211,15 @@ export default function App() {
     return () => {
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
-  }, []);
+  }, [usesNativeDetector]);
 
   // Load custom audio base64 on boot & settings change
   useEffect(() => {
     const loadCustomAudio = async () => {
+      if (usesNativeDetector) {
+        setCustomAudioData(null);
+        return;
+      }
       if (settings.audioSourceType === 'custom' && settings.customAudioId) {
         try {
           const audio = await getCustomAudio(settings.customAudioId);
@@ -214,10 +237,10 @@ export default function App() {
       }
     };
     loadCustomAudio();
-  }, [settings.customAudioId, settings.audioSourceType]);
+  }, [settings.customAudioId, settings.audioSourceType, usesNativeDetector]);
 
   // Save settings whenever changed
-  const handleSettingsChange = (newSettings: DetectorSettings) => {
+  const handleSettingsChange = useCallback((newSettings: DetectorSettings) => {
     const normalized = normalizeSettings(newSettings);
     setSettings(normalized);
     try {
@@ -225,7 +248,7 @@ export default function App() {
     } catch (e) {
       console.error("Could not write local settings:", e);
     }
-  };
+  }, []);
 
   const handleLanguageChange = (newLang: Language) => {
     setLang(newLang);
@@ -329,6 +352,9 @@ export default function App() {
 
   const handleEnterKiosk = async () => {
     setShowKioskGate(false);
+    // Android owns camera, audio routing and the partial wake lock. Do not
+    // start the legacy Web MediaStream path from the Capacitor WebView.
+    if (usesNativeDetector) return;
     updateReadiness({id: 'secure-context', status: window.isSecureContext ? 'pass' : 'fail', message: window.isSecureContext ? 'HTTPS' : 'HTTPS required'});
     
     try {
@@ -376,10 +402,23 @@ export default function App() {
     const ready = status === 'ready' || status === 'armed' || status === 'playing' || status === 'cooldown' || status === 'triggered';
     updateReadiness({
       id: 'camera',
-      status: ready ? 'pass' : status === 'error' ? 'fail' : 'warning',
+      status: ready ? 'pass' : status === 'error' || status === 'fault' ? 'fail' : 'warning',
       message: ready ? (lang === 'uk' ? 'Камера активна' : 'Camera active') : error || (lang === 'uk' ? 'Камера запускається' : 'Camera starting'),
     });
   };
+
+  const handleNativeRuntimeStatus = useCallback((snapshot: NativeDetectorSnapshot) => {
+    const active = ['starting', 'armed', 'triggered', 'playing', 'cooldown', 'recovering'].includes(snapshot.status);
+    setIsDetecting(active);
+    setIsAlarmPlaying(snapshot.status === 'playing');
+    setOnCoolDown(snapshot.status === 'cooldown');
+    setCoolDownRemaining(snapshot.cooldownRemainingSeconds);
+    updateReadiness({
+      id: 'camera',
+      status: snapshot.status === 'fault' ? 'fail' : snapshot.status === 'audio_route_lost' ? 'warning' : active ? 'pass' : 'warning',
+      message: snapshot.message,
+    });
+  }, [updateReadiness]);
 
   const saveAppName = () => {
     const trimmed = tempName.trim();
@@ -466,7 +505,19 @@ export default function App() {
         </div>
       ) : (
         <>
-          {activeTab === 'sensor' && (
+          {usesNativeDetector && (
+            <header className="w-full max-w-2xl mx-auto px-4 pt-5 flex items-center justify-between gap-3">
+              <div className="text-left min-w-0">
+                <p className="text-sm font-black tracking-wider text-slate-100 uppercase truncate">Exhibit Motion</p>
+                <p className="text-[9px] font-mono font-bold tracking-widest text-[#F27D26] uppercase">Local Android APK</p>
+              </div>
+              <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-0.5 h-10 shrink-0">
+                <button type="button" onClick={() => handleLanguageChange('uk')} className={`px-3 h-full rounded-lg text-[10px] font-black ${lang === 'uk' ? 'bg-[#F27D26] text-black' : 'text-slate-400'}`}>УКР</button>
+                <button type="button" onClick={() => handleLanguageChange('en')} className={`px-3 h-full rounded-lg text-[10px] font-black ${lang === 'en' ? 'bg-[#F27D26] text-black' : 'text-slate-400'}`}>ENG</button>
+              </div>
+            </header>
+          )}
+          {activeTab === 'sensor' && !usesNativeDetector && (
             <>
               {/* 1. Top Buttons Row - Make "Погасить экран" button full width and taller (h-14 rounded-2xl) and add generous top spacing */}
               <div className="w-full max-w-sm mx-auto mt-10 md:mt-14 px-4 flex items-center gap-3 font-sans animate-fade-in">
@@ -486,7 +537,7 @@ export default function App() {
 
               {/* 2. Full-width Action Row - Host Activation button, reboot button, and language switcher aligned on the right */}
               <div className="w-full max-w-sm mx-auto px-4 mt-3 shrink-0 flex items-center gap-2.5">
-                <button
+                {!usesNativeDetector && <button
                   onClick={() => {
                     try {
                       unlockAudioContext();
@@ -506,7 +557,7 @@ export default function App() {
                       : (lang === 'uk' ? 'УВІМКНУТИ ДАТЧИК РУХУ' : 'TURN ON SENSOR')
                     }
                   </span>
-                </button>
+                </button>}
 
                 {/* Reboot Button */}
                 <button
@@ -556,7 +607,14 @@ export default function App() {
           {/* TAB 1: SENSOR CONTROLS (Centered Camera stream with settings popup inside it) */}
           {activeTab === 'sensor' && (
             <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-              <CameraDetector
+              {usesNativeDetector ? (
+                <NativeDetectorPanel
+                  lang={lang}
+                  settings={settings}
+                  onSettingsChange={handleSettingsChange}
+                  onRuntimeStatusChange={handleNativeRuntimeStatus}
+                />
+              ) : <CameraDetector
                 lang={lang}
                 settings={settings}
                 customAudioData={customAudioData}
@@ -576,10 +634,10 @@ export default function App() {
                 lowPowerMode={stealthActive}
                 onOpenLogs={() => setActiveTab('events')}
                 onRuntimeStatusChange={handleCameraRuntimeStatus}
-              />
+              />}
 
               {/* Compact local audio selector */}
-              <div className="pt-2">
+              {!usesNativeDetector && <div className="pt-2">
                 <MinimalFilesList
                   settings={settings}
                   onSettingsChange={handleSettingsChange}
@@ -587,10 +645,10 @@ export default function App() {
                   lang={lang}
                   onOpenAudioSourceModal={() => setShowAudioModal(true)}
                 />
-              </div>
+              </div>}
 
               {/* 3. Event Logs button at the very bottom of the sensor view */}
-              <div className="pt-4 border-t border-gray-900 mt-2">
+              {!usesNativeDetector && <div className="pt-4 border-t border-gray-900 mt-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab('events')}
@@ -604,7 +662,7 @@ export default function App() {
                     </span>
                   )}
                 </button>
-              </div>
+              </div>}
             </div>
           )}
 
@@ -744,7 +802,7 @@ export default function App() {
         </div>
       )}
 
-      <PwaUpdatePrompt canUpdate={!isDetecting} lang={lang} />
+      {!usesNativeDetector && <PwaUpdatePrompt canUpdate={!isDetecting} lang={lang} />}
         </>
       )}
     </div>

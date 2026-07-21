@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exhibit Motion — інструкція для персоналу</title>
+  <style>
+    :root {
+      --ink: #10182d;
+      --ink-soft: #48546b;
+      --navy: #05091d;
+      --navy-2: #101935;
+      --paper: #f7f8fb;
+      --white: #ffffff;
+      --orange: #f47b26;
+      --orange-soft: #fff0e4;
+      --teal: #0fc4a5;
+      --teal-soft: #e6faf6;
+      --amber: #e69a22;
+      --amber-soft: #fff7df;
+      --red: #c6444e;
+      --red-soft: #fff0f1;
+      --line: #dfe5ed;
+      --muted: #778298;
+    }
+
+    * { box-sizing: border-box; }
+    @page { size: A4; margin: 0; }
+    html, body { margin: 0; padding: 0; background: #d9dee8; }
+    body {
+      color: var(--ink);
+      font-family: "Noto Sans", "DejaVu Sans", Arial, sans-serif;
+      font-size: 9.2pt;
+      line-height: 1.43;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1, h2, .serif { font-family: "Noto Serif", "DejaVu Serif", Georgia, serif; }
+    h1 { font-size: 35pt; line-height: 1.02; letter-spacing: -0.04em; }
+    h2 { font-size: 22pt; line-height: 1.12; letter-spacing: -0.025em; }
+    h3 { font-size: 11.2pt; line-height: 1.25; }
+    strong { font-weight: 800; }
+    code {
+      font-family: "JetBrains Mono", "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+      font-size: 7.5pt;
+      overflow-wrap: anywhere;
+    }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      background: var(--paper);
+      padding: 16mm 16mm 15mm;
+    }
+    .page:last-child { page-break-after: auto; }
+    .eyebrow {
+      color: var(--orange);
+      text-transform: uppercase;
+      font-size: 7.5pt;
+      letter-spacing: .17em;
+      font-weight: 800;
+    }
+    .lede { color: var(--ink-soft); font-size: 12pt; line-height: 1.42; }
+    .tiny { font-size: 7.4pt; line-height: 1.36; color: var(--muted); }
+    .small { font-size: 8.1pt; }
+    .footer {
+      position: absolute;
+      left: 16mm;
+      right: 16mm;
+      bottom: 7mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #7d8798;
+      font-size: 7pt;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .rule { width: 100%; height: 1px; background: var(--line); margin: 6mm 0; }
+    .pill {
+      display: inline-flex;
+      gap: 1.7mm;
+      align-items: center;
+      border-radius: 99px;
+      padding: 1.6mm 3.2mm;
+      font-size: 7.2pt;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .pill::before {
+      content: "";
+      width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor;
+    }
+    .pill-teal { background: var(--teal-soft); color: #087d6a; }
+    .pill-orange { background: var(--orange-soft); color: #b75515; }
+    .pill-amber { background: var(--amber-soft); color: #9b6509; }
+    .pill-red { background: var(--red-soft); color: #a52e38; }
+    .grid { display: grid; gap: 4mm; }
+    .two { grid-template-columns: 1fr 1fr; }
+    .three { grid-template-columns: repeat(3, 1fr); }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--white);
+      border-radius: 4mm;
+      padding: 4mm;
+    }
+    .card-dark {
+      background: var(--navy-2);
+      color: white;
+      border-color: transparent;
+    }
+    .card-title {
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 900;
+      color: var(--muted);
+      margin-bottom: 2.3mm;
+    }
+    .card-dark .card-title { color: #aebad1; }
+    .notice {
+      display: grid;
+      grid-template-columns: 7mm 1fr;
+      gap: 3mm;
+      border-radius: 3.5mm;
+      padding: 3.5mm 4mm;
+      border: 1px solid var(--line);
+      background: var(--white);
+    }
+    .notice .mark {
+      width: 7mm; height: 7mm; border-radius: 50%;
+      display: grid; place-items: center;
+      font-weight: 900; font-size: 9pt;
+      color: white; background: var(--ink);
+    }
+    .notice.orange { background: var(--orange-soft); border-color: #ffd3b8; }
+    .notice.orange .mark { background: var(--orange); }
+    .notice.teal { background: var(--teal-soft); border-color: #bcece2; }
+    .notice.teal .mark { background: var(--teal); }
+    .notice.red { background: var(--red-soft); border-color: #ffcfd3; }
+    .notice.red .mark { background: var(--red); }
+    .notice.amber { background: var(--amber-soft); border-color: #f4dfad; }
+    .notice.amber .mark { background: var(--amber); }
+    .cover {
+      color: white;
+      background:
+        radial-gradient(circle at 105% 4%, rgba(15,196,165,.34), transparent 31%),
+        radial-gradient(circle at -8% 108%, rgba(244,123,38,.33), transparent 36%),
+        linear-gradient(132deg, #030618 0%, #09112c 55%, #080d20 100%);
+      padding: 18mm 17mm 16mm;
+    }
+    .cover .footer { color: #b7c1d8; left: 17mm; right: 17mm; }
+    .cover-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .cover-mark {
+      width: 24mm; height: 24mm; border-radius: 50%;
+      position: relative;
+      border: 1.1mm solid var(--orange);
+      display: grid; place-items: center;
+    }
+    .cover-mark::before, .cover-mark::after {
+      content: "";
+      position: absolute; border-radius: 50%;
+      border: .65mm solid var(--teal);
+    }
+    .cover-mark::before { width: 14mm; height: 14mm; }
+    .cover-mark::after { width: 5mm; height: 5mm; background: var(--orange); border: 0; }
+    .cover h1 { margin-top: 32mm; max-width: 145mm; }
+    .cover .subtitle { margin-top: 6mm; font-size: 15pt; line-height: 1.33; color: #cbd4e7; max-width: 132mm; }
+    .cover .meta { margin-top: 12mm; display: flex; flex-wrap: wrap; gap: 2mm; }
+    .cover .meta .pill { color: #dce6f9; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+    .cover .meta .pill::before { background: var(--teal); }
+    .cover-bottom {
+      position: absolute; left: 17mm; right: 17mm; bottom: 25mm;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm;
+    }
+    .cover-stat { border-top: 1px solid rgba(255,255,255,.22); padding-top: 3mm; }
+    .cover-stat b { display: block; color: var(--orange); font-size: 16pt; line-height: 1.05; }
+    .cover-stat span { color: #c2cce0; font-size: 7.8pt; line-height: 1.3; }
+    .chapter {
+      margin-top: 7mm;
+      display: flex; align-items: center; gap: 3mm;
+      font-size: 7.6pt; text-transform: uppercase; letter-spacing: .14em; font-weight: 900; color: var(--orange);
+    }
+    .chapter::before { content: ""; width: 8mm; height: 1.2mm; background: var(--orange); border-radius: 2px; }
+    .role-card { min-height: 42mm; }
+    .role-number {
+      width: 8mm; height: 8mm; border-radius: 50%; display: grid; place-items: center;
+      background: var(--ink); color: white; font-size: 7pt; font-weight: 900; margin-bottom: 3mm;
+    }
+    .mode {
+      border-left: 1.4mm solid var(--orange);
+      padding: 3.7mm 4mm;
+      border-radius: 0 3.5mm 3.5mm 0;
+      background: var(--white);
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .mode.teal { border-left-color: var(--teal); }
+    .step-list { display: grid; gap: 2.6mm; }
+    .step {
+      display: grid;
+      grid-template-columns: 8.5mm 1fr;
+      gap: 3mm;
+      align-items: start;
+    }
+    .step-index {
+      width: 8.5mm; height: 8.5mm; border-radius: 50%;
+      display: grid; place-items: center;
+      background: var(--orange); color: white; font-weight: 900; font-size: 8pt;
+    }
+    .step h3 { margin-top: .5mm; }
+    .step p { color: var(--ink-soft); margin-top: 1mm; }
+    .tech-box {
+      background: #eef2f8;
+      border: 1px solid #d5dce7;
+      border-radius: 3mm;
+      padding: 3mm 3.5mm;
+      color: #28344d;
+    }
+    .tech-box code {
+      display: block;
+      white-space: pre-wrap;
+      overflow-wrap: normal;
+      word-break: normal;
+      font-size: 6.25pt;
+      letter-spacing: -.015em;
+      line-height: 1.55;
+    }
+    .phone-layout {
+      display: grid;
+      grid-template-columns: 77mm 1fr;
+      gap: 8mm;
+      align-items: center;
+      margin-top: 4mm;
+    }
+    .phone-frame {
+      width: 68mm;
+      margin: auto;
+      background: #0a1021;
+      border: 2.2mm solid #121826;
+      border-radius: 8mm;
+      padding: 1.9mm;
+      box-shadow: 0 4mm 10mm rgba(20,31,55,.18);
+    }
+    .phone-notch { width: 21mm; height: 2.2mm; border-radius: 2mm; background: #20293a; margin: 0 auto 1.5mm; }
+    .phone-frame img { display: block; width: 100%; height: 125mm; object-fit: cover; object-position: top; border-radius: 5mm; }
+    .legend-item {
+      padding: 2.7mm 0;
+      border-bottom: 1px solid var(--line);
+      display: grid; grid-template-columns: 6mm 1fr; gap: 2mm;
+    }
+    .legend-item:last-child { border-bottom: 0; }
+    .legend-tag {
+      width: 5.5mm; height: 5.5mm; border-radius: 50%; display: grid; place-items: center;
+      background: var(--orange); color: white; font-size: 6.6pt; font-weight: 900;
+    }
+    .arm-panel {
+      background: linear-gradient(130deg, #092d2c, #0a202c);
+      border-radius: 4mm;
+      border: 1px solid #1d806e;
+      color: white; padding: 5mm;
+    }
+    .arm-button {
+      display: block;
+      margin-top: 3.5mm;
+      background: var(--orange);
+      color: #101828;
+      border-radius: 3mm;
+      text-align: center;
+      padding: 3.5mm;
+      font-size: 9pt;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+    .checklist { display: grid; gap: 2.4mm; }
+    .check {
+      display: grid; grid-template-columns: 5mm 1fr; gap: 2.5mm; align-items: start;
+      padding: 2.4mm 0; border-bottom: 1px solid var(--line);
+    }
+    .check:last-child { border-bottom: 0; }
+    .box { width: 4mm; height: 4mm; border: .45mm solid #99a5b7; border-radius: .8mm; margin-top: 1mm; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 8pt; }
+    th {
+      text-align: left; color: #5f6a7c; background: #eaf0f6;
+      padding: 2.4mm 2.8mm; font-size: 7pt; text-transform: uppercase; letter-spacing: .06em;
+    }
+    th:first-child { border-radius: 2.5mm 0 0 0; }
+    th:last-child { border-radius: 0 2.5mm 0 0; }
+    td { vertical-align: top; padding: 2.25mm 2.8mm; background: white; border-bottom: 1px solid var(--line); }
+    tr td:first-child { border-left: 1px solid var(--line); font-weight: 800; }
+    tr td:last-child { border-right: 1px solid var(--line); color: var(--ink-soft); }
+    .status-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 1.5mm; background: var(--teal); vertical-align: middle; }
+    .status-dot.amber { background: var(--amber); }
+    .status-dot.red { background: var(--red); }
+    .status-dot.orange { background: var(--orange); }
+    .trouble {
+      display: grid; grid-template-columns: 28mm 1fr; gap: 4mm; padding: 3.3mm 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .trouble:last-child { border-bottom: 0; }
+    .trouble-key { font-weight: 900; color: var(--ink); }
+    .trouble-action { color: var(--ink-soft); }
+    .boot-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2mm; margin: 4mm 0; }
+    .boot-node {
+      min-height: 24mm; background: var(--white); border: 1px solid var(--line);
+      border-radius: 3mm; padding: 3mm; position: relative;
+    }
+    .boot-node:not(:last-child)::after {
+      content: "→"; position: absolute; right: -3.5mm; top: 8mm; z-index: 3;
+      color: var(--orange); font-size: 14pt; font-weight: 900;
+    }
+    .boot-node b { display: block; font-size: 8.2pt; line-height: 1.2; margin-bottom: 1mm; }
+    .boot-node span { font-size: 7pt; color: var(--muted); line-height: 1.28; }
+    .do-not {
+      background: var(--navy);
+      color: #e5ecf9;
+      border-radius: 4mm;
+      padding: 4.5mm;
+    }
+    .do-not h3 { color: var(--orange); margin-bottom: 2.5mm; }
+    .do-not ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 2mm; }
+    .do-not li::before { content: "×"; color: var(--orange); font-weight: 900; margin-right: 2mm; }
+    .support-card {
+      border: 1.2mm solid var(--orange);
+      border-radius: 4mm;
+      background: white;
+      padding: 5mm;
+    }
+    .support-line { border-bottom: 1px solid #aeb8c8; min-height: 7mm; margin-top: 2mm; }
+    .quick-card {
+      background: linear-gradient(132deg, #fff 0%, #f4fbfa 100%);
+      border: 1px solid #bfe8de;
+      border-radius: 5mm;
+      padding: 5.5mm;
+    }
+    .quick-card h2 { font-size: 17pt; }
+    .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5mm; margin-top: 4mm; }
+    .quick-step { border-radius: 3mm; background: white; border: 1px solid #dce9e6; padding: 3.3mm; min-height: 29mm; }
+    .quick-step b { display: block; color: var(--orange); font-size: 14pt; line-height: 1; margin-bottom: 1.5mm; }
+    .signature {
+      margin-top: 5mm; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; color: var(--ink-soft);
+    }
+    .signature .line { margin-top: 8mm; border-top: 1px solid #9ba7b8; padding-top: 1.5mm; font-size: 7.5pt; }
+  </style>
+</head>
+<body>
+
+  <section class="page cover">
+    <div class="cover-top">
+      <div>
+        <p class="eyebrow">Музейна інсталяція · автономний APK</p>
+        <p style="margin-top:3mm;color:#c9d4e8;font-size:9pt;letter-spacing:.07em">EXHIBIT MOTION</p>
+      </div>
+      <div class="cover-mark" aria-hidden="true"></div>
+    </div>
+
+    <h1>Інструкція з інсталяції та щоденної роботи</h1>
+    <p class="subtitle">Датчик руху музейного експонату: камера фіксує рух, а застосунок відтворює підготовлений звук через зовнішній аудіомаршрут.</p>
+
+    <div class="meta">
+      <span class="pill">ПЗ Exhibit Motion 1.1.0</span>
+      <span class="pill">для персоналу експозиції</span>
+      <span class="pill">15 липня 2026</span>
+    </div>
+
+    <div class="cover-bottom">
+      <div class="cover-stat"><b>6</b><span>обов’язкових перевірок перед увімкненням датчика</span></div>
+      <div class="cover-stat"><b>AUX / BT</b><span>лише перевірений зовнішній звук; динамік телефона не використовується</span></div>
+      <div class="cover-stat"><b>офлайн</b><span>після налаштування застосунок працює без Chrome та інтернету</span></div>
+    </div>
+    <div class="footer"><span>Внутрішній документ музею</span><span>1 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">01 · Перед початком</p>
+    <h2 style="margin-top:3mm">Хто і за що відповідає</h2>
+    <p class="lede" style="margin-top:3mm;max-width:150mm">Інсталяція працює на виділеному телефоні. Розділяйте щоденні дії персоналу та одноразові технічні налаштування.</p>
+
+    <div class="grid three" style="margin-top:7mm">
+      <div class="card role-card">
+        <div class="role-number">1</div>
+        <h3>Персонал залу</h3>
+        <p class="small" style="margin-top:2mm;color:var(--ink-soft)">Щодня перевіряє живлення, зовнішній звук, кадри камери та одне реальне спрацювання.</p>
+      </div>
+      <div class="card role-card">
+        <div class="role-number">2</div>
+        <h3>Оператор</h3>
+        <p class="small" style="margin-top:2mm;color:var(--ink-soft)">Імпортує звук, налаштовує гучність, калібрує, проходить тест руху та працює з PIN.</p>
+      </div>
+      <div class="card role-card">
+        <div class="role-number">3</div>
+        <h3>Технічний фахівець</h3>
+        <p class="small" style="margin-top:2mm;color:var(--ink-soft)">Встановлює release APK, готує телефон для автозапуску та приймає діагностику.</p>
+      </div>
+    </div>
+
+    <div class="chapter">Режими встановлення</div>
+    <div class="grid two" style="margin-top:4mm">
+      <div class="mode">
+        <span class="pill pill-amber">звичайне встановлення APK</span>
+        <h3 style="margin-top:3mm">Ручний запуск після перезавантаження</h3>
+        <p class="small" style="margin-top:2mm;color:var(--ink-soft)">Після повного вимкнення персонал сам відкриває застосунок і вмикає датчик. Це нормальний, безпечний режим для тестового або некомісійного телефона.</p>
+      </div>
+      <div class="mode teal">
+        <span class="pill pill-teal">постійна інсталяція</span>
+        <h3 style="margin-top:3mm">Кіоск і автозапуск</h3>
+        <p class="small" style="margin-top:2mm;color:var(--ink-soft)">Лише після підготовки телефона як Device Owner технічним фахівцем. Автостарт спрацьовує тільки коли всі перевірки та аудіомаршрут залишаються дійсними.</p>
+      </div>
+    </div>
+
+    <div class="notice amber" style="margin-top:6mm">
+      <div class="mark">!</div>
+      <div><strong>Важливо для режиму «без дотику».</strong> На виділеному телефоні не має бути системного PIN, пароля або графічного ключа. Android вимагатиме перше ручне розблокування після повного вимкнення — застосунок не обходить цей захист.</div>
+    </div>
+
+    <div class="chapter">Що перевірити фізично</div>
+    <div class="checklist" style="margin-top:2.5mm">
+      <div class="check"><span class="box"></span><span>Телефон заряджається; кабель живлення не натягнутий і не заважає відвідувачам.</span></div>
+      <div class="check"><span class="box"></span><span>Камера не закрита кріпленням, пилом або табличкою; під час первинного налаштування підтверджено кадр саме потрібної зони.</span></div>
+      <div class="check"><span class="box"></span><span>AUX/USB-аудіо або схвалений Bluetooth-пристрій під’єднано й увімкнено.</span></div>
+      <div class="check"><span class="box"></span><span>Підсилювач/колонки мають узгоджену фізичну гучність; рівень у застосунку не замінює перевірку на місці.</span></div>
+    </div>
+    <div class="footer"><span>Exhibit Motion · інструкція персоналу</span><span>2 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">02 · Встановлення</p>
+    <h2 style="margin-top:3mm">Тільки для технічного фахівця</h2>
+    <p class="lede" style="margin-top:3mm">Ця сторінка потрібна під час первинної інсталяції або контрольного оновлення. Персонал залу не видаляє застосунок і не очищає його дані.</p>
+
+    <div class="grid two" style="margin-top:7mm">
+      <div class="card">
+        <p class="card-title">Звичайне встановлення</p>
+        <div class="step-list">
+          <div class="step"><span class="step-index">1</span><div><h3>Використати release APK</h3><p class="small">Файл: <strong>ExhibitMotion-1.1.0-release.apk</strong>. Не встановлювати debug APK на фінальний телефон.</p></div></div>
+          <div class="step"><span class="step-index">2</span><div><h3>Встановити та відкрити застосунок</h3><p class="small">Надати дозвіл до камери, коли Android покаже системне вікно.</p></div></div>
+          <div class="step"><span class="step-index">3</span><div><h3>Пройти майстер на сторінках 4–5</h3><p class="small">Без шести зелених перевірок кнопка «УВІМКНУТИ ДАТЧИК» навмисно недоступна.</p></div></div>
+        </div>
+        <div class="tech-box" style="margin-top:4mm"><code>adb install -r ExhibitMotion-1.1.0-release.apk</code></div>
+      </div>
+      <div class="card">
+        <p class="card-title">Автозапуск / Device Owner</p>
+        <p class="small"><strong>Передумови:</strong> фінальний телефон скинуто до заводських налаштувань; на ньому немає Google-акаунта, work profile або другого користувача; використовується той самий release key.</p>
+        <div class="notice red" style="margin-top:4mm">
+          <div class="mark">!</div>
+          <div class="small"><strong>Не запускайте команду Device Owner на звичайному робочому телефоні.</strong> Це дія лише для чистого тестового або фінального музейного телефона.</div>
+        </div>
+        <div class="tech-box" style="margin-top:4mm"><code>adb shell dpm set-device-owner \
+ua.alexsnig.exhibitmotion/.kiosk.\
+ExhibitDeviceAdminReceiver</code></div>
+        <p class="tiny" style="margin-top:3mm">Після комісіонування не змінювати package name, DeviceAdmin receiver або signing key. Оновлення має бути підписане тим самим ключем і мати вищий versionCode.</p>
+      </div>
+    </div>
+
+    <div class="chapter">До передавання залу</div>
+    <div class="grid two" style="margin-top:4mm">
+      <div class="notice teal"><div class="mark">✓</div><div><strong>Офлайн-перевірка.</strong><br>Імпортований звук має відтворюватися після вимкнення мережі. Робочий режим не потребує Chrome або інтернету.</div></div>
+      <div class="notice orange"><div class="mark">→</div><div><strong>Фізичне приймання.</strong><br>На фінальному телефоні виконати щонайменше 5 циклів повного вимкнення / увімкнення з реальним AUX та безпечним сценарієм втрати маршруту.</div></div>
+    </div>
+
+    <div class="support-card" style="margin-top:7mm">
+      <p class="card-title" style="color:var(--orange)">Запис після інсталяції</p>
+      <div class="grid two small">
+        <div>Місце експозиції:<div class="support-line"></div></div>
+        <div>Дата / технічний фахівець:<div class="support-line"></div></div>
+        <div>Аудіомаршрут (AUX / Bluetooth):<div class="support-line"></div></div>
+        <div>Перевірена зона камери:<div class="support-line"></div></div>
+      </div>
+    </div>
+    <div class="footer"><span>Exhibit Motion · технічна інсталяція</span><span>3 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">03 · Перший запуск</p>
+    <h2 style="margin-top:3mm">Майстер: камера, звук і маршрут</h2>
+    <p class="lede" style="margin-top:3mm">Працюйте за порядком. Зелена позначка означає, що конкретний крок завершено; вона не замінює подальші перевірки.</p>
+
+    <div class="phone-layout">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <img src="assets/native-detector-setup.png" alt="Екран нативного датчика з кроками камери, аудіо і тесту маршруту">
+      </div>
+      <div>
+        <div class="legend-item"><span class="legend-tag">1</span><div><strong>Камера</strong><br><span class="small" style="color:var(--ink-soft)">Натиснути «Надати доступ до камери» та погодитися у системному вікні Android. Після цього фізично перевірити, що вибрана лінза бачить потрібну зону експонату.</span></div></div>
+        <div class="legend-item"><span class="legend-tag">2</span><div><strong>Локальне аудіо</strong><br><span class="small" style="color:var(--ink-soft)">«Імпортувати аудіо» → вибрати підготовлений, невеликий Android-сумісний файл. Файл копіюється у внутрішню пам’ять застосунку та лишається доступним офлайн.</span></div></div>
+        <div class="legend-item"><span class="legend-tag">3</span><div><strong>Тест маршруту</strong><br><span class="small" style="color:var(--ink-soft)">Під’єднати звук <em>до</em> натискання. Натиснути «Відтворити тест» і дочекатися завершення. Напис «Маршрут перевірено» з’являється лише після реального програвання.</span></div></div>
+      </div>
+    </div>
+
+    <div class="notice teal" style="margin-top:4mm">
+      <div class="mark">✓</div>
+      <div><strong>Дозволений результат тесту:</strong> <b>AUX</b> (пріоритетний) або назва попередньо перевіреного <b>Bluetooth</b>-пристрою. Телефонний динамік ніколи не використовується як запасний вихід.</div>
+    </div>
+    <div class="notice red" style="margin-top:3mm">
+      <div class="mark">!</div>
+      <div><strong>«Звук недоступний» або інший Bluetooth.</strong> Не переходьте до наступних кроків. Перевірте кабель/живлення колонок або поверніть схвалений Bluetooth-пристрій, потім запустіть тест маршруту знову.</div>
+    </div>
+    <p class="tiny" style="margin-top:4mm">Заміна аудіофайлу скасовує перевірку маршруту й тест руху. Після будь-якої зміни поверніться до незавершених кроків.</p>
+    <div class="footer"><span>Exhibit Motion · перший запуск</span><span>4 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">04 · Перевірка</p>
+    <h2 style="margin-top:3mm">Гучність, калібрування, рух</h2>
+    <p class="lede" style="margin-top:3mm">Ці кроки підтверджують, що система не лише бачить рух, а й справді відтворює звук у залі.</p>
+
+    <div class="grid two" style="margin-top:7mm">
+      <div class="card">
+        <div class="step"><span class="step-index">4</span><div><h3>Гучність</h3><p class="small">Встановити повзунок 0–100% і натиснути «Зберегти та застосувати». Потім оцінити реальну гучність на відвідувачевій відстані.</p></div></div>
+        <div class="notice amber" style="margin-top:3mm"><div class="mark">!</div><div class="small">Зміна гучності скасовує тест руху. Потрібно пройти його ще раз.</div></div>
+      </div>
+      <div class="card">
+        <div class="step"><span class="step-index">5</span><div><h3>Калібрування — 10 секунд</h3><p class="small">Натиснути «Почати калібрування (10 с)». Перед камерою не повинно бути людей, рухомих тіней, коливань експонату або різкої зміни світла.</p></div></div>
+        <div class="notice amber" style="margin-top:3mm"><div class="mark">!</div><div class="small">Нове калібрування також скасовує тест руху.</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:4mm">
+      <div class="step"><span class="step-index">6</span><div><h3>Тест руху</h3><p class="small">Натиснути «Почати тест руху». Пройти перед камерою у робочій зоні, дочекатися <strong>реального звуку</strong> через зовнішній вихід, а потім натиснути «Завершити тест». Кнопка завершення доступна тільки після зафіксованого руху та відтворення. «Скасувати тест» просто зупиняє поточну перевірку.</p></div></div>
+    </div>
+
+    <div class="arm-panel" style="margin-top:5mm">
+      <p class="card-title" style="color:#8edfd2">Фінальний крок</p>
+      <h3 style="font-size:14pt">Усі шість кроків мають бути зеленими</h3>
+      <p class="small" style="color:#ccdde5;margin-top:2mm">Лише після цього застосунок дозволяє перейти до робочого режиму.</p>
+      <div class="arm-button">УВІМКНУТИ ДАТЧИК</div>
+    </div>
+
+    <div class="notice orange" style="margin-top:5mm">
+      <div class="mark">↺</div>
+      <div><strong>Безпечне правило після зміни.</strong> Якщо змінили звук, кабель/BT-маршрут, гучність або калібрування — завершіть усі кроки, які знову стали не зеленими, і виконайте новий тест руху перед увімкненням датчика.</div>
+    </div>
+    <div class="footer"><span>Exhibit Motion · перевірка роботи</span><span>5 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">05 · Щоденна робота</p>
+    <h2 style="margin-top:3mm">Одна хвилина перед відкриттям зали</h2>
+    <div class="grid two" style="margin-top:6mm">
+      <div class="quick-card">
+        <h2>Контрольний запуск</h2>
+        <div class="quick-grid">
+          <div class="quick-step"><b>1</b><span class="small"><strong>Живлення</strong><br>Телефон заряджається, колонки увімкнені.</span></div>
+          <div class="quick-step"><b>2</b><span class="small"><strong>Маршрут</strong><br>На екрані AUX або правильний Bluetooth.</span></div>
+          <div class="quick-step"><b>3</b><span class="small"><strong>Камера</strong><br>Є рядок «Камера передає кадри».</span></div>
+          <div class="quick-step"><b>4</b><span class="small"><strong>Рух</strong><br>Один раз пройти перед камерою.</span></div>
+          <div class="quick-step"><b>5</b><span class="small"><strong>Звук</strong><br>Чути через зовнішній вихід, не з телефона.</span></div>
+          <div class="quick-step"><b>6</b><span class="small"><strong>Стан</strong><br>Повернувся «Датчик активний».</span></div>
+        </div>
+      </div>
+      <div class="card-dark" style="padding:5mm">
+        <p class="card-title">Під час роботи</p>
+        <h3 style="font-size:14pt">Нормальний цикл</h3>
+        <p class="small" style="margin-top:2.5mm;color:#cad5e9">Після відвідувача статус послідовно може змінюватися. Це не є несправністю:</p>
+        <div style="margin-top:5mm;display:grid;gap:2.5mm">
+          <div><span class="pill pill-teal">Датчик активний</span> <span class="small" style="color:#cad5e9">очікує рух</span></div>
+          <div><span class="pill pill-orange">Рух виявлено</span> <span class="small" style="color:#cad5e9">сигнал підтверджено</span></div>
+          <div><span class="pill pill-orange">Відтворення</span> <span class="small" style="color:#cad5e9">аудіо зараз грає</span></div>
+          <div><span class="pill pill-amber">Пауза після сигналу</span> <span class="small" style="color:#cad5e9">коротка нормальна затримка</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chapter">Стан системи — як читати</div>
+    <table style="margin-top:3mm">
+      <thead><tr><th style="width:39mm">Напис на екрані</th><th>Дія персоналу</th></tr></thead>
+      <tbody>
+        <tr><td><span class="status-dot"></span>Датчик активний</td><td>Нормальна робота. Не змінювати кабелі та Bluetooth-пристрій.</td></tr>
+        <tr><td><span class="status-dot orange"></span>Запуск камери</td><td>Зачекати. Якщо стан не змінюється або з’являється помилка — див. сторінку 7.</td></tr>
+        <tr><td><span class="status-dot amber"></span>Відновлення камери</td><td>Зачекати завершення автоматичної спроби. Не натискати багато разів поспіль.</td></tr>
+        <tr><td><span class="status-dot red"></span>Аудіомаршрут втрачено</td><td>Повернути правильний зовнішній звук, провести «Тест маршруту», новий тест руху та знову увімкнути датчик.</td></tr>
+        <tr><td><span class="status-dot red"></span>Помилка датчика</td><td>Оновити діагностику, зафіксувати текст помилки та передати технічному фахівцю.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="notice teal" style="margin-top:6mm"><div class="mark">✓</div><div><strong>Наприкінці зміни:</strong> залиште телефон на заряджанні, не закривайте застосунок примусово та не від’єднуйте перевірений аудіокабель без потреби.</div></div>
+    <div class="footer"><span>Exhibit Motion · щоденний запуск</span><span>6 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">06 · Якщо щось пішло не так</p>
+    <h2 style="margin-top:3mm">Спокійний алгоритм відновлення</h2>
+    <p class="lede" style="margin-top:3mm">Не намагайтеся «виправити все одразу». Прочитайте стан на екрані, виконайте одну дію та перевірте результат.</p>
+
+    <div class="card" style="margin-top:7mm">
+      <div class="trouble"><div class="trouble-key">Звук недоступний</div><div class="trouble-action">Перевірити живлення колонок/підсилювача і кабель. Для Bluetooth — увімкнути саме перевірений пристрій. Не шукати звук у динаміку телефона.</div></div>
+      <div class="trouble"><div class="trouble-key">Аудіомаршрут втрачено</div><div class="trouble-action">Під’єднати правильний AUX або дозволений Bluetooth → «Тест маршруту» → пройти новий «Тест руху» → «УВІМКНУТИ ДАТЧИК».</div></div>
+      <div class="trouble"><div class="trouble-key">Рух не спрацьовує</div><div class="trouble-action">Перевірити «Камера передає кадри», пройти в реальній зоні. Якщо після зміни світла/розміщення — виконати нове калібрування й тест руху.</div></div>
+      <div class="trouble"><div class="trouble-key">Відновлення камери</div><div class="trouble-action">Зачекати. Застосунок має обмежені автоматичні спроби відновлення. Якщо з’явилася «Помилка датчика», зафіксувати її в діагностиці.</div></div>
+      <div class="trouble"><div class="trouble-key">PIN не приймається</div><div class="trouble-action">Не підбирати PIN. Після п’яти неправильних спроб діє 30-секундна пауза. Звернутися до відповідального оператора.</div></div>
+    </div>
+
+    <div class="grid two" style="margin-top:6mm">
+      <div class="notice orange"><div class="mark">↺</div><div><strong>Перезавантаження.</strong><br>Для звичайного APK після увімкнення відкрийте застосунок вручну. Для комісійного кіоску дочекайтеся Home-екрана та перевірте аудіомаршрут.</div></div>
+      <div class="notice red"><div class="mark">!</div><div><strong>Коли ескалувати.</strong><br>Запах нагріву, заряд не йде, повторна помилка камери, невідомий аудіопристрій або екран не повертається до нормального стану.</div></div>
+    </div>
+
+    <div class="do-not" style="margin-top:6mm">
+      <h3>Не робити самостійно</h3>
+      <ul class="small">
+        <li>Не очищати дані застосунку, не видаляти APK і не скидати фінальний телефон.</li>
+        <li>Не міняти системний PIN/пароль, Device Owner, Home app або kiosk-політику.</li>
+        <li>Не змінювати звук, кабель, гучність чи калібрування без повторного тесту руху.</li>
+        <li>Не використовувати інший Bluetooth-пристрій «на пробу» під час роботи експозиції.</li>
+      </ul>
+    </div>
+    <div class="footer"><span>Exhibit Motion · несправності</span><span>7 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">07 · Kiosk і автозапуск</p>
+    <h2 style="margin-top:3mm">Лише для комісійного музейного телефона</h2>
+    <p class="lede" style="margin-top:3mm">Автозапуск — не просто «увімкнена кнопка». Він безпечно працює тільки на Device Owner-телефоні з готовим майстром, PIN оператора та дійсним аудіомаршрутом.</p>
+
+    <div class="boot-flow">
+      <div class="boot-node"><b>1. Увімкнення</b><span>Android запускає виділений Home-екран застосунку.</span></div>
+      <div class="boot-node"><b>2. Kiosk</b><span>Активується Lock Task; сторонні екрани не потрібні для роботи.</span></div>
+      <div class="boot-node"><b>3. Перевірка</b><span>Перевіряються камера, звук, калібрування та тест руху.</span></div>
+      <div class="boot-node"><b>4. Датчик</b><span>Вмикається лише якщо умови відповідають збереженій перевірці.</span></div>
+    </div>
+
+    <div class="notice amber" style="margin-top:4mm"><div class="mark">!</div><div><strong>Немає AUX або маршрут змінився?</strong> Система не відтворює звук через телефон. Вона залишається в безпечному стані й очікує правильний маршрут та повторну перевірку.</div></div>
+
+    <div class="grid two" style="margin-top:6mm">
+      <div class="card">
+        <p class="card-title">Як увімкнути після комісіонування</p>
+        <ol class="small" style="padding-left:4mm;margin:0;display:grid;gap:2mm">
+          <li>Переконатися, що всі шість кроків майстра зелені.</li>
+          <li>У розділі «7. Kiosk і автозапуск» зберегти PIN оператора (4–12 цифр).</li>
+          <li>Якщо показано кнопку «Налаштувати Home і Lock Task» — натиснути її.</li>
+          <li>Увести PIN і натиснути «Увімкнути kiosk і автозапуск».</li>
+        </ol>
+      </div>
+      <div class="card">
+        <p class="card-title">Операторське обслуговування</p>
+        <ol class="small" style="padding-left:4mm;margin:0;display:grid;gap:2mm">
+          <li>Увести PIN → «Відкрити операторський режим».</li>
+          <li>Внести потрібну зміну та пройти всі повторно потрібні тести.</li>
+          <li>Увести PIN → «Повернути kiosk».</li>
+          <li>Перевірити стан і знову увімкнути датчик.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="notice teal" style="margin-top:6mm"><div class="mark">✓</div><div><strong>Чесне формулювання готовності.</strong> Перед передаванням у зал технічний фахівець має записати результати щонайменше п’яти повних перезавантажень на фінальному телефоні: з робочим AUX, без AUX і з дозволеним Bluetooth.</div></div>
+
+    <div class="footer"><span>Exhibit Motion · kiosk-режим</span><span>8 / 9</span></div>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">08 · Підтримка</p>
+    <h2 style="margin-top:3mm">Діагностика, передавання та швидка картка</h2>
+    <div class="grid two" style="margin-top:6mm">
+      <div class="card">
+        <p class="card-title">Діагностика</p>
+        <p class="small">У блоці «Діагностика» натисніть <strong>«Оновити»</strong>. Там видно кількість подій, кадрів камери, перезапусків, помилок і заряд батареї.</p>
+        <p class="small" style="margin-top:3mm">Для технічного фахівця натисніть <strong>«Експорт JSON»</strong> та оберіть дозволений спосіб передавання у системному меню Android. У kiosk-режимі спершу відкрийте операторський режим.</p>
+      </div>
+      <div class="support-card">
+        <p class="card-title" style="color:var(--orange)">Що повідомити технічному фахівцю</p>
+        <div class="small" style="display:grid;gap:2mm">
+          <div>Дата та час:<div class="support-line"></div></div>
+          <div>Напис у «Стані системи»:<div class="support-line"></div></div>
+          <div>AUX / назва Bluetooth / звук недоступний:<div class="support-line"></div></div>
+          <div>Що було зроблено перед проблемою:<div class="support-line"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-card" style="margin-top:7mm">
+      <p class="eyebrow">Картка на щодень</p>
+      <h2 style="margin-top:2mm">Перед відкриттям: 4 дії</h2>
+      <div class="quick-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="quick-step"><b>1</b><span class="small">Живлення й колонки увімкнені.</span></div>
+        <div class="quick-step"><b>2</b><span class="small">На екрані AUX або правильний Bluetooth.</span></div>
+        <div class="quick-step"><b>3</b><span class="small">Камера передає кадри.</span></div>
+        <div class="quick-step"><b>4</b><span class="small">Один рух → зовнішній звук → «Датчик активний».</span></div>
+      </div>
+    </div>
+
+    <div class="notice orange" style="margin-top:6mm"><div class="mark">?</div><div><strong>Якщо не впевнені — не експериментуйте.</strong> Залиште систему в безпечному стані, запишіть статус і передайте діагностику. Це краще, ніж змінювати PIN, скидати дані або підключати випадковий звук.</div></div>
+
+    <div class="signature">
+      <div><div class="line">Відповідальний за зал</div></div>
+      <div><div class="line">Технічний фахівець</div></div>
+    </div>
+    <div class="footer"><span>Exhibit Motion · підтримка</span><span>9 / 9</span></div>
+  </section>
+
+</body>
+</html>

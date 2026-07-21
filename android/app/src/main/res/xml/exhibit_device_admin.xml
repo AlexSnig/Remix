@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Device Owner authority is granted during factory-reset provisioning.
+         No destructive device-admin policies are requested by this APK. -->
+    <uses-policies />
+</device-admin>

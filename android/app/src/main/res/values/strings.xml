@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Exhibit Motion</string>
+    <string name="title_activity_main">Exhibit Motion</string>
+    <string name="package_name">ua.alexsnig.exhibitmotion</string>
+    <string name="custom_url_scheme">ua.alexsnig.exhibitmotion</string>
+    <string name="device_admin_description">Керування виділеним музейним пристроєм та kiosk-режимом.</string>
+</resources>

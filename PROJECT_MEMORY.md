@@ -1,20 +1,17 @@
 # Project Memory
 
-Last updated: 2026-07-14
+Last updated: 2026-07-21
 
 ## Current state
 
 - Repository: `https://github.com/AlexSnig/Remix`, branch `main`.
-- Product: personal Android-first museum motion-sensor PWA.
-- Runtime: static React 19/Vite 6 build on Cloudflare Workers Static Assets; no Express server.
-- Offline: `vite-plugin-pwa` generateSW strategy precaches app shell, local fonts, and icons.
-- Audio: built-in Web Audio beep or a local phone file stored as IndexedDB Blob, maximum 12 MB.
-- Storage: `AndroidMotionDetectorDB` version `3`; legacy base64 records migrate lazily.
-- Settings: versioned and normalized through `src/utils/settings.ts`; saved camera choice is preserved.
-- Camera: production failures are visible errors; there is no simulated production stream.
-- Detection: 36 × 48 analysis, 10 FPS maximum, two-frame confirmation, 70% global-light rejection, optional center zone, 10-second calibration.
-- Reliability: one Wake Lock owner, visibility recovery, track ended/mute recovery, device-change recovery, and stalled-frame watchdog.
-- Updates: service-worker updates require confirmation and are disabled while armed.
+- Product: premium fully local Android museum motion-sensor APK for a dedicated kiosk phone.
+- Runtime: signed Capacitor APK; React is the local operator WebView and Kotlin owns production behavior. No server or network is required.
+- Audio: operator-imported local audio in app-private storage; only a verified AUX or named Bluetooth route is accepted, never the phone speaker.
+- Storage: Android DataStore owns settings/readiness and Room owns the bounded event log.
+- Camera: CameraX foreground service at 36 × 48 analysis and at most 10 FPS; no simulated or browser fallback exists in the APK.
+- Kiosk: Device Owner, persistent Home activity, Lock Task, operator PIN, visible-activity boot resume, and explicit ordinary-install behavior.
+- Browser/PWA: retained only for UI and regression testing; Cloudflare is not a production dependency or release target.
 
 ## Validation snapshot
 
@@ -23,16 +20,15 @@ Last updated: 2026-07-14
 - `npm run build`: passing; main JS about 90 KB gzip; PWA precache about 646 KB.
 - `npm run test:e2e`: 6/6 mobile/desktop arming, camera-denial, and offline service-worker scenarios passing.
 - Browser plugin is unavailable, so regular Playwright is the accepted fallback.
-- Android emulator gate is blocked on this workstation: Java, Android SDK/ADB, and `/dev/kvm` are unavailable. CPU VT-x exists but KVM is not exposed.
+- Android native gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`, `assembleRelease`) passes on this workstation with JDK 21 and a local Android SDK/emulator (`BUILD SUCCESSFUL`, 11/11 unit tests, 0 lint errors). The release APK signature was independently verified with `apksigner` against the existing release key. This environment previously lacked Java/SDK/KVM; that gap has since been closed.
 
 ## Product decisions
 
-- Cloudflare Worker name: `alex-remix-motion-sensor`; `wrangler.jsonc` uses native SPA fallback handling and explicitly enables the public workers.dev route and preview URLs.
-- Runtime must work without a private server. Google Drive integration was removed.
-- Audio is imported from the phone and copied locally before offline use.
-- PWA-first remains the target. Capacitor is considered only after a real-device PWA soak test fails.
-- Play Store, Expo rewrite, enterprise deployment, cloud logging, and visitor identification are out of scope.
+- Native APK and Device Owner kiosk are the canonical production target.
+- Runtime must be fully local. Google Drive, private servers, cloud logging, and visitor identification remain out of scope.
+- Audio is copied into app-private Android storage before arming.
+- Direct controlled installation is the release channel; Play Store and enterprise MDM distribution remain out of scope unless explicitly added later.
 
 ## Remaining production gate
 
-Cloudflare deployment is configured and runs through the connected build pipeline. Android hardware/emulator access remains an external prerequisite. The final trustworthy test is an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, network loss, background/foreground, camera permission loss, storage pressure, and repeated custom narration playback.
+The production gates are a reproducible signed release build with the existing signing identity, Device Owner provisioning on the target phone, and an 8-hour Galaxy A07 run with charging, heat observation, 100+ triggers, cold boot, route loss, app switching, camera permission loss, storage pressure, and repeated custom narration playback.

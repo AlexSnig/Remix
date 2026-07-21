@@ -23,5 +23,11 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "android/**",
+    "dist/**",
+    "coverage/**",
+    "node_modules/**"
+  ]
 }
