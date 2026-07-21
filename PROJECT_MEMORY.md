@@ -25,6 +25,7 @@ Last updated: 2026-07-22
 - `npm run build`: passing; main JS about 90 KB gzip; PWA precache about 646 KB.
 - `npm run test:e2e`: 6/6 mobile/desktop arming, camera-denial, and offline service-worker scenarios passing.
 - Browser plugin is unavailable, so regular Playwright is the accepted fallback.
+- The signed release APK was installed on the real Galaxy A07 and driven through camera permission, audio import, AUX route test and arming. That is what caught the R8 defect below; keep doing it.
 - Android native gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`, `assembleRelease`) passes on this workstation with JDK 21 and a local Android SDK/emulator (`BUILD SUCCESSFUL`, 11/11 unit tests, 0 lint errors). The release APK signature was independently verified with `apksigner` against the existing release key. This environment previously lacked Java/SDK/KVM; that gap has since been closed.
 
 ## Release-build hazard
@@ -45,6 +46,25 @@ Keep rules for `com.getcapacitor.annotation.**` and the plugin reflection surfac
 - The client delivery package is assembled outside this repository, so the signing key can never be committed. It holds the release APK, staff PDF, Device Owner guide, a verification report, a build guide, and the signing key in an isolated subfolder with its own checksums so it can be delivered separately over a secure channel. The maintainer keeps its location privately; it is deliberately not recorded here.
 - Superseded 1.1.0 artifacts were removed from the repository root and archived offline. That build predates the tagged history and exists nowhere else.
 - The handoff keystore was verified end-to-end: re-signing an APK using only the files in the package reproduces the shipped certificate fingerprint exactly.
+
+## Hardware in play
+
+- **Galaxy A07 (`SM-A075F`, Android 15 / API 35)** — the museum target. Carries release `1.3.0`. This is the phone that matters for acceptance.
+- **Galaxy S9 (`SM-G960F`, Android 10 / API 29)** — development phone, sits at the app's `minSdk`. Its debug build was removed on 2026-07-21 after backing up the app's private data.
+
+## Open items as of 2026-07-22
+
+Verified on the A07 this session: camera permission, sound test through AUX (`type:headphone`, `name:h2w`), route approval, arming, and **detection with the screen off** — `PARTIAL_WAKE_LOCK` holds, the camera stays open, and the service stays foreground. The screen may be switched off in the exhibition and should be, for heat and OLED burn-in.
+
+Blocked or undecided:
+
+1. **Device Owner is blocked.** `dpm set-device-owner` fails with `IllegalStateException: Not allowed to set the device owner because there are already some accounts on the device`. Two accounts are present, including `museumkamianetspodilskyi@gmail.com`. The operator must remove them by hand in Settings; ADB cannot. Warn about Factory Reset Protection before any factory reset — remove the Google account *first*, or FRP will demand its password afterwards. Until Device Owner exists, persistent Home, Lock Task and boot resume cannot be configured or tested.
+2. **Factory reset protection is unknown.** Diagnostics now report `factoryResetProtection`; read it immediately after provisioning. `unsupported_by_manufacturer` means a stolen exhibit can be wiped and resold, which the museum must be told plainly. Physical mounting is the primary control either way.
+3. **Device Owner hardening is offered but not built** — `DISALLOW_FACTORY_RESET`, `DISALLOW_SAFE_BOOT`, `DISALLOW_DEBUGGING_FEATURES`, `DISALLOW_ADD_USER`, `setStatusBarDisabled`. Note that disabling debugging also cuts ADB access, so it belongs last, after the night test.
+4. **Narration length is an exhibition decision.** A trigger plays the imported file to its end before the cooldown and re-arming, and the current files run about four minutes, so the exhibit ignores everyone who arrives during that window. Options put to the operator: trim the audio, let a new trigger restart playback, cap playback at N seconds, or keep one full telling per group. Undecided.
+5. **The camera in use is the front one** (`CAMERA_FACING_FRONT` in Logcat). Confirm against how the phone will be mounted; calibration is tied to the lens actually used.
+6. **The client handoff package still holds the defective 1.2.0 APK** and must be rebuilt from 1.3.0 or later before delivery. The `v1.2.0` tag points at that defective build.
+7. **The 8-hour acceptance run has not been done.**
 
 ## Remaining production gate
 
