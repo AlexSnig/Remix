@@ -98,6 +98,7 @@ const COPY = {
     armHint: 'Для увімкнення потрібні всі шість перевірок.', routeHint: 'AUX має пріоритет; динамік телефона не використовується.',
     events: 'Події', cameraRestarts: 'Перезапуски камери', errors: 'Помилки', battery: 'Батарея',
     cameraFrames: 'Кадри з камери', cameraLive: 'Камера передає кадри',
+    frp: 'Захист від скидання',
     kioskTitle: '7. Kiosk і автозапуск', kioskSubtitle: 'Після вимкнення телефона запуск іде нативно: Device Owner → Home-екран → датчик.',
     deviceOwner: 'Device Owner', homeApp: 'Home app', lockTask: 'Lock Task', kioskLock: 'Kiosk lock',
     deviceOwnerRequired: 'Для реального автозапуску цей телефон потрібно скинути до заводських налаштувань і підготувати APK як Device Owner. На звичайному телефоні датчик після reboot навмисно не стартує у фоні.',
@@ -133,6 +134,7 @@ const COPY = {
     armHint: 'All six checks are required before arming.', routeHint: 'AUX takes priority; the phone speaker is never used.',
     events: 'Events', cameraRestarts: 'Camera restarts', errors: 'Errors', battery: 'Battery',
     cameraFrames: 'Camera frames', cameraLive: 'Camera frames are arriving',
+    frp: 'Factory reset protection',
     kioskTitle: '7. Kiosk and auto-start', kioskSubtitle: 'After a power cycle Android starts Device Owner → Home app → detector locally.',
     deviceOwner: 'Device Owner', homeApp: 'Home app', lockTask: 'Lock Task', kioskLock: 'Kiosk lock',
     deviceOwnerRequired: 'Reliable auto-start requires a factory reset and Device Owner commissioning. An ordinary installation intentionally does not start the camera service in the background after reboot.',
@@ -401,7 +403,12 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
         </div>
 
         {!kioskState.isDeviceOwner && <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-200">{t.deviceOwnerRequired}</p>}
-        {kioskState.isDeviceOwner && !kioskState.isDefaultHomeApp && <button type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.configureKiosk()); setBusy(null); })} className="native-action mt-4">{busy === 'kiosk' ? t.preparing : t.configureKiosk}</button>}
+        {/* Offer this whenever either half of the policy is missing. Keying it
+            on isDefaultHomeApp alone hid the button on a provisioned phone,
+            where the app is already Home but Lock Task was never configured —
+            and the enable button below is disabled until Lock Task exists, so
+            the operator had no way in at all. Re-running is harmless. */}
+        {kioskState.isDeviceOwner && (!kioskState.isDefaultHomeApp || !kioskState.isLockTaskAllowed) && <button type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.configureKiosk()); setBusy(null); })} className="native-action mt-4">{busy === 'kiosk' ? t.preparing : t.configureKiosk}</button>}
 
         {kioskState.requiresFirstUnlock && <p className="mt-3 text-[11px] text-red-300">{t.secureUnlockWarning}</p>}
 
@@ -439,7 +446,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
 
     <section className="rounded-2xl border border-gray-800 bg-[#111111] p-4 text-left">
       <div className="flex justify-between gap-2 items-center"><p className="text-xs font-black uppercase tracking-wide">{t.diagnostics}</p><div className="flex gap-2"><button type="button" onClick={() => run('diagnostics', async () => { setDiagnostics(await MotionDetector.getDiagnostics()); setBusy(null); })} className="native-icon-action" title={t.refresh}><SlidersHorizontal className="w-4 h-4" /></button><button type="button" onClick={() => run('diagnostics', async () => { await MotionDetector.exportDiagnostics(); setBusy(null); })} className="native-icon-action" title={t.export}><Download className="w-4 h-4" /></button></div></div>
-      {diagnostics ? <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 text-[10px] text-gray-400"><dt>{t.events}</dt><dd className="text-right text-slate-200">{diagnostics.eventCount}</dd><dt>{t.cameraFrames}</dt><dd className="text-right text-slate-200">{diagnostics.analyzedFrameCount}</dd><dt>{t.cameraRestarts}</dt><dd className="text-right text-slate-200">{diagnostics.cameraRestarts}</dd><dt>{t.errors}</dt><dd className="text-right text-slate-200">{diagnostics.errors}</dd><dt>{t.battery}</dt><dd className="text-right text-slate-200">{diagnostics.batteryPercent == null ? '—' : `${diagnostics.batteryPercent}%`}</dd></dl> : <p className="text-[10px] text-gray-500 mt-3">{t.noDiagnostics}</p>}
+      {diagnostics ? <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 text-[10px] text-gray-400"><dt>{t.events}</dt><dd className="text-right text-slate-200">{diagnostics.eventCount}</dd><dt>{t.cameraFrames}</dt><dd className="text-right text-slate-200">{diagnostics.analyzedFrameCount}</dd><dt>{t.cameraRestarts}</dt><dd className="text-right text-slate-200">{diagnostics.cameraRestarts}</dd><dt>{t.errors}</dt><dd className="text-right text-slate-200">{diagnostics.errors}</dd><dt>{t.battery}</dt><dd className="text-right text-slate-200">{diagnostics.batteryPercent == null ? '—' : `${diagnostics.batteryPercent}%`}</dd><dt>{t.frp}</dt><dd className="text-right text-slate-200 break-all">{diagnostics.factoryResetProtection ?? '—'}</dd></dl> : <p className="text-[10px] text-gray-500 mt-3">{t.noDiagnostics}</p>}
     </section>
 
     <section className="rounded-2xl border border-gray-800 bg-[#111111] p-4 text-left">

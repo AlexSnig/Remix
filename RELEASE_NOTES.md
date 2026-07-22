@@ -1,5 +1,33 @@
 # Release notes
 
+## 1.3.1 — The kiosk can actually be configured on a provisioned phone
+
+Driven by commissioning the target Galaxy A07, where the operator panel turned
+out to offer no way at all to finish the kiosk setup.
+
+### Fixed: the configure button was hidden exactly when it was needed
+
+«Налаштувати Home і Lock Task» rendered only when the app was *not* already the
+Home app. But `dpm set-device-owner` makes the exhibit the Home app immediately,
+while leaving Lock Task unconfigured — `onProfileProvisioningComplete` only
+fires in the managed-provisioning flow, never over ADB. So on a freshly
+provisioned phone the button was hidden, and the «Увімкнути kiosk і автозапуск»
+button below it stays disabled until Lock Task exists, which is what the hidden
+button would have configured. Both routes out were closed at once and the only
+recovery was an ADB command an installer in the field would not have.
+
+The button now appears whenever *either* half of the policy is missing —
+Home app or Lock Task. Re-running it is harmless.
+
+### Factory reset protection is now readable
+
+`factoryResetProtection` was collected by diagnostics but only reachable through
+«Експорт JSON», which opens a share sheet — and a phone already in Lock Task
+cannot launch another app to receive it. The value was effectively unreadable on
+exactly the devices it describes. It is now shown directly in the diagnostics
+list, verbatim, so a technician can tell `unsupported_by_manufacturer` apart
+from a value that is merely not knowable yet.
+
 ## 1.3.0 — Operator-confirmed sound test and Bluetooth auto-recovery
 
 Driven by the physical acceptance test on the target Galaxy A07.

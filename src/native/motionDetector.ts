@@ -40,6 +40,10 @@ export interface ImportedNativeAudio {
 export interface NativeDiagnostics {
   versionName: string;
   versionCode: number;
+  /** Native probe result, not a boolean: the manufacturer may simply not
+   * implement the policy. Rendered verbatim so a technician can tell
+   * "unsupported" apart from "not yet knowable". */
+  factoryResetProtection: string;
   uptimeMs: number;
   serviceStarts: number;
   lastStartedAtMs: number;
