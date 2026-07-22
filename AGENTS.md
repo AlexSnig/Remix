@@ -58,4 +58,24 @@ Every visible string needs Ukrainian and English. Preserve the dark museum-contr
 
 Before handoff, run lint, coverage, build, Playwright, native unit tests, debug APK assembly, and release assembly when the production signing key is available. For native camera changes, verify first-frame success, permission denial, stalled-frame recovery, route loss, and repeated recovery. For kiosk changes, verify ordinary-install behavior separately from Device Owner behavior and cover the cold-boot matrix.
 
+Never ship two different binaries under one `versionCode`. Bump
+`android/app/build.gradle` and `package.json` together with any change that
+reaches a device, so an installed APK can always be traced back to a commit.
+
+Verify every release APK before it leaves the workstation: certificate
+fingerprint via `apksigner verify --print-certs`, and the R8 smoke check that
+`Lcom/getcapacitor/annotation/CapacitorPlugin;` survives into the packaged DEX.
+Use `grep -a` for that — without it `grep` treats `classes.dex` as binary and
+reports zero matches on a perfectly healthy build.
+
+`docs/DEVICE_OWNER_KIOSK.md` is the commissioning runbook for a new exhibit
+phone, verified against real hardware. Follow it literally rather than
+improvising, and correct it in the same session whenever a step proves wrong.
+
+Updating a commissioned phone with `adb install -r` preserves Device Owner and
+Lock Task but leaves the detector disarmed, because the service only auto-starts
+from the boot path. Always reboot after updating, and confirm the service
+intent is `AUTO_START` — arming from the panel produces `action.START`, which
+proves nothing about boot resume.
+
 Do not claim physical Android readiness from Playwright or compilation alone. Final readiness requires a sustained test on the target museum phone with the real camera, approved audio route, charger, thermal conditions, cold boot, app switching, permission loss, route loss, and repeated triggers. Device Owner provisioning may require a factory reset and is destructive; never perform it without explicit user approval.
