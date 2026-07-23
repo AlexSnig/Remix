@@ -6,8 +6,23 @@ This repository is a premium, fully local Android museum motion-sensor APK for a
 
 The production target is a signed Capacitor Android APK installed directly on a commissioned museum phone. The React bundle is the local operator UI inside the APK; Kotlin owns all production camera, audio, persistence, boot-resume, and kiosk behavior. Cloudflare/PWA output is a development and browser-regression surface only. There is no runtime server, Google Drive integration, Play Store scope, visitor identification, or cloud dependency.
 
+## Read order
+
+Before changing or releasing the product:
+
+1. Read this file.
+2. Read `docs/DOCUMENTATION_INDEX.md`.
+3. Read `docs/PROJECT_STATE.md` for the current release, phone state, camera
+   choice, and open gates.
+4. Read the task-specific runbook linked from the documentation index.
+5. Inspect the real working tree and device state; documentation is not a
+   substitute for current evidence.
+
 ## Required skills
 
+- Use the repo-local `$exhibit-motion-release` skill for release builds, signed
+  APK audits, target-phone installation, Device Owner/Lock Task validation,
+  client handoff, and production-readiness decisions.
 - Use `frontend-testing-debugging` for rendered behavior, mobile viewport, console, screenshot, and offline QA.
 - Use `react-best-practices` for React state, effects, refs, rendering frequency, bundle, and TypeScript work.
 - Use `android-emulator-qa` only when ADB and an emulator are available.
@@ -54,6 +69,10 @@ Keep CameraX motion processing at or below 10 FPS and WebView telemetry at or be
 
 Every visible string needs Ukrainian and English. Preserve the dark museum-control visual language and orange accent unless redesign is requested.
 
+The selected lens is a physical-installation setting, not a stylistic choice.
+Follow `docs/PROJECT_STATE.md`; do not switch front/rear camera without
+confirming how the phone is mounted, and always recalibrate after a change.
+
 ## Required validation
 
 Before handoff, run lint, coverage, build, Playwright, native unit tests, debug APK assembly, and release assembly when the production signing key is available. For native camera changes, verify first-frame success, permission denial, stalled-frame recovery, route loss, and repeated recovery. For kiosk changes, verify ordinary-install behavior separately from Device Owner behavior and cover the cold-boot matrix.
@@ -72,6 +91,10 @@ reports zero matches on a perfectly healthy build.
 phone, verified against real hardware. Follow it literally rather than
 improvising, and correct it in the same session whenever a step proves wrong.
 
+`docs/RELEASE_AND_HANDOFF.md` is the canonical release and client-package
+runbook. Update `docs/PROJECT_STATE.md` in the same change whenever the release,
+target-phone evidence, or remaining physical gates change.
+
 Updating a commissioned phone with `adb install -r` preserves Device Owner and
 Lock Task but leaves the detector disarmed, because the service only auto-starts
 from the boot path. Always reboot after updating, and confirm the service
@@ -79,3 +102,15 @@ intent is `AUTO_START` — arming from the panel produces `action.START`, which
 proves nothing about boot resume.
 
 Do not claim physical Android readiness from Playwright or compilation alone. Final readiness requires a sustained test on the target museum phone with the real camera, approved audio route, charger, thermal conditions, cold boot, app switching, permission loss, route loss, and repeated triggers. Device Owner provisioning may require a factory reset and is destructive; never perform it without explicit user approval.
+
+## Repository hygiene
+
+- Keep signing keys, passwords, `keystore.properties`, APK/AAB files, client
+  packages, temporary screenshots, traces, logs, and extracted DEX outside Git.
+- Keep the approved narration master only at `assets/audio/+Сходи.MP3` with its
+  checksum. Do not duplicate it under ad-hoc release or rollback folders.
+- Delete only confirmed superseded artifacts. Never delete the only signing
+  key, approved audio master, or latest accepted client APK.
+- Review the exact staged file list for secrets before committing.
+- Never force-push or rewrite a tag unless the user explicitly authorizes that
+  exact history change.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Exhibit Motion Release"
+  short_description: "Build, verify, install, and hand off releases"
+  default_prompt: "Use $exhibit-motion-release to verify and prepare the next signed Exhibit Motion Android release for client handoff."

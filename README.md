@@ -2,6 +2,10 @@
 
 Premium fully local Android APK for a dedicated museum exhibit phone. CameraX detects movement, Media3 plays operator-imported narration through a verified output route, and Device Owner Lock Task keeps the installation in kiosk mode without a server or internet connection.
 
+Start with the [documentation index](docs/DOCUMENTATION_INDEX.md) and
+[current project state](docs/PROJECT_STATE.md). Release and phone work follows
+[the release and handoff runbook](docs/RELEASE_AND_HANDOFF.md).
+
 ## Native Android APK
 
 The Capacitor Android target is the canonical production application. The React
@@ -49,8 +53,10 @@ pattern, or password**. Android keeps app-private audio and settings
 credential-encrypted until the first unlock otherwise; this APK never tries
 to bypass that security boundary.
 
-Full provisioning and acceptance steps are in
-[docs/DEVICE_OWNER_KIOSK.md](docs/DEVICE_OWNER_KIOSK.md).
+Full provisioning steps are in
+[docs/DEVICE_OWNER_KIOSK.md](docs/DEVICE_OWNER_KIOSK.md). Release, update,
+acceptance, retention, and client-package steps are in
+[docs/RELEASE_AND_HANDOFF.md](docs/RELEASE_AND_HANDOFF.md).
 
 ### Building an APK
 
@@ -80,8 +86,9 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 adb logcat -s ExhibitMotion MotionDetector CameraX AndroidRuntime
 ```
 
-Before an unattended installation, verify camera permission and rear-camera
-framing, imported-audio playback through the intended AUX/Bluetooth route,
+Before an unattended installation, verify camera permission and the camera
+selected for the physical mount (currently front camera on the Galaxy A07),
+imported-audio playback through the intended AUX/Bluetooth route,
 route-loss lockout and re-arm, repeated motion triggers, charging, thermal
 behaviour, app switching, and the dedicated-device cold-boot matrix. A
 successful web build or emulator run alone is not production readiness for

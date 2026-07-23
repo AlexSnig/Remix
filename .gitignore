@@ -8,3 +8,11 @@ test-results/
 .DS_Store
 *.log
 .env*
+.claude/settings.local.json
+*.apk
+*.aab
+*.jks
+*.keystore
+keystore.properties
+exhibit-audio/
+exhibit-rollback/
