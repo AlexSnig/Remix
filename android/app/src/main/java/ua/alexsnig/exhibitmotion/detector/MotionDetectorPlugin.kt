@@ -9,6 +9,8 @@ import android.database.Cursor
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
@@ -250,6 +252,7 @@ class MotionDetectorPlugin : Plugin() {
                 val destination = File(directory, id)
                 pendingDestination = destination
                 copyAudio(uri, destination)
+                validateAudio(destination)
                 val imported = ImportedAudio(id, fileName, context.contentResolver.getType(uri) ?: "audio/*")
                 val store = DetectorStore.get(context)
                 val previousAudio = store.loadImportedAudio()
@@ -267,6 +270,9 @@ class MotionDetectorPlugin : Plugin() {
                     put("name", fileName)
                     put("mimeType", imported.mimeType)
                 })
+            } catch (error: InvalidAudioException) {
+                pendingDestination?.delete()
+                call.reject(error.message ?: "Вибраний аудіофайл не підтримується", "INVALID_AUDIO", error)
             } catch (error: Exception) {
                 pendingDestination?.delete()
                 call.reject(error.message ?: "Could not import local audio", "IMPORT_FAILED", error)
@@ -275,7 +281,13 @@ class MotionDetectorPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun playTest(call: PluginCall) = runWithCameraPermission(call, MotionDetectorService.ACTION_TEST_AUDIO)
+    fun playTest(call: PluginCall) {
+        // Route verification owns audio only. Coupling it to camera permission
+        // caused an unrelated permission dialog after a file was imported and
+        // made the test appear to do nothing when the operator denied it.
+        MotionDetectorService.command(context, MotionDetectorService.ACTION_TEST_AUDIO)
+        call.resolve(statusData(DetectorRuntime.current()))
+    }
 
     /** Route approval is an operator judgement about audible sound, so it needs
      * no camera permission and must not wait for a long narration to end. */
@@ -649,7 +661,37 @@ class MotionDetectorPlugin : Plugin() {
         } ?: throw IllegalArgumentException("Не вдалося прочитати вибраний аудіофайл")
     }
 
+    /** Reject corrupt or mislabeled files before replacing the last known-good
+     * narration. A file extension and a provider MIME type are not evidence
+     * that Android can actually parse an audio stream. */
+    private fun validateAudio(file: File) {
+        if (!file.isFile || file.length() == 0L) {
+            throw InvalidAudioException("Вибраний файл порожній або пошкоджений")
+        }
+        val extractor = MediaExtractor()
+        try {
+            extractor.setDataSource(file.absolutePath)
+            val hasAudioTrack = (0 until extractor.trackCount).any { trackIndex ->
+                extractor.getTrackFormat(trackIndex)
+                    .getString(MediaFormat.KEY_MIME)
+                    ?.startsWith("audio/") == true
+            }
+            if (!hasAudioTrack) {
+                throw InvalidAudioException("У вибраному файлі немає підтримуваної аудіодоріжки")
+            }
+        } catch (error: InvalidAudioException) {
+            throw error
+        } catch (error: Exception) {
+            throw InvalidAudioException("Android не може прочитати цей аудіофайл", error)
+        } finally {
+            extractor.release()
+        }
+    }
+
     companion object {
         private const val MAX_AUDIO_BYTES = 12L * 1024 * 1024
     }
 }
+
+private class InvalidAudioException(message: String, cause: Throwable? = null) :
+    IllegalArgumentException(message, cause)

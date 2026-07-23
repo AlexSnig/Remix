@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.3.2 — Reliable audio import, camera selection, and recovery
+
+- Rejects corrupt or mislabeled audio before it replaces the last working file.
+- Keeps the sound-route test independent from camera permission.
+- Explains that playback remains disabled until AUX or the approved Bluetooth
+  speaker is connected.
+- Preserves unsaved detector tuning during native status refreshes, saves camera
+  selection immediately, and applies pending tuning before calibration.
+- Clears a stuck calibration action when CameraX reports a fault.
+- Retries unattended CameraX recovery indefinitely with capped exponential
+  backoff and prevents overlapping retry jobs.
+- Keeps detailed playback and CameraX exceptions in Logcat while showing the
+  operator a short recovery message.
+
 ## 1.3.1 — The kiosk can actually be configured on a provisioned phone
 
 Driven by commissioning the target Galaxy A07, where the operator panel turned

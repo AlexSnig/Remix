@@ -19,7 +19,7 @@ interface NativeDetectorPanelProps {
   onRuntimeStatusChange: (snapshot: NativeDetectorSnapshot) => void;
 }
 
-type StepId = 'camera' | 'audio' | 'route' | 'volume' | 'calibration' | 'motion' | 'kiosk';
+type StepId = 'camera' | 'audio' | 'route' | 'volume' | 'calibration' | 'motion' | 'tuning' | 'kiosk';
 
 const INITIAL_STATUS: NativeDetectorSnapshot = {
   status: 'idle',
@@ -63,6 +63,10 @@ const ACTION_ERROR_COPY: Record<string, Record<Language, string>> = {
   },
   CANCELLED: { uk: 'Імпорт аудіо скасовано.', en: 'Audio import was cancelled.' },
   IMPORT_FAILED: { uk: 'Не вдалося імпортувати локальний аудіофайл.', en: 'The local audio file could not be imported.' },
+  INVALID_AUDIO: {
+    uk: 'Файл пошкоджений або має непідтримуваний аудіоформат. Виберіть інший файл.',
+    en: 'The file is corrupt or uses an unsupported audio format. Choose another file.',
+  },
   MOTION_TEST_NOT_TRIGGERED: { uk: 'Спочатку дочекайтеся реального спрацювання датчика.', en: 'Wait for an actual detector trigger before finishing the test.' },
   INVALID_PIN: { uk: 'PIN має містити від 4 до 12 цифр.', en: 'The PIN must contain 4 to 12 digits.' },
   INCORRECT_PIN: { uk: 'Неправильний PIN оператора.', en: 'The operator PIN is incorrect.' },
@@ -86,6 +90,7 @@ const COPY = {
     camera: '1. Камера', cameraAction: 'Надати доступ до камери', cameraDone: 'Доступ до камери надано',
     audio: '2. Локальне аудіо', import: 'Імпортувати аудіо', noAudio: 'Файл ще не вибрано',
     route: '3. Тест маршруту', routeAction: 'Відтворити тест', routeDone: 'Маршрут перевірено',
+    routeUnavailableHint: 'Підключіть AUX або затверджену Bluetooth-колонку. Динамік телефона навмисно не використовується.',
     routeConfirm: 'Чую звук', routeReject: 'Не чую', routeListening: 'Слухайте колонку та підтвердьте',
     volume: '4. Гучність', saveVolume: 'Зберегти та застосувати', volumeDone: 'Гучність застосовано', calibration: '5. Калібрування',
     calibrate: 'Почати калібрування (10 с)', calibrationDone: 'Калібрування завершено',
@@ -113,6 +118,7 @@ const COPY = {
     clearEventsConfirm: 'Очистити весь локальний журнал подій?', motionValue: 'Рух', thresholdValue: 'Поріг',
     tuning: 'Налаштування детектора', frontCamera: 'Фронтальна камера', rearCamera: 'Задня камера', sensitivity: 'Чутливість',
     cooldownDelay: 'Пауза після сигналу', consecutiveFrames: 'Кадрів для підтвердження', saveTuning: 'Зберегти налаштування',
+    tuningUnsaved: 'Є незбережені зміни.',
     stopToTune: 'Щоб змінити параметри камери, спочатку зупиніть датчик.', seconds: 'с',
     bootState: { never: 'ще не перевірено після reboot', started: 'датчик запущено', waiting_for_route: 'очікується перевірений аудіомаршрут', blocked: 'запуск заблоковано перевірками', failed: 'помилка запуску' },
     statusText: { idle: 'Готово до запуску', starting: 'Запуск камери', armed: 'Датчик активний', triggered: 'Рух виявлено', playing: 'Відтворення', cooldown: 'Пауза після сигналу', recovering: 'Відновлення камери', audio_route_lost: 'Аудіомаршрут втрачено', fault: 'Помилка датчика' },
@@ -122,6 +128,7 @@ const COPY = {
     camera: '1. Camera', cameraAction: 'Grant camera access', cameraDone: 'Camera access granted',
     audio: '2. Local audio', import: 'Import audio', noAudio: 'No file selected yet',
     route: '3. Route test', routeAction: 'Play route test', routeDone: 'Route verified',
+    routeUnavailableHint: 'Connect AUX or the approved Bluetooth speaker. The phone speaker is intentionally disabled.',
     routeConfirm: 'I hear sound', routeReject: 'No sound', routeListening: 'Listen to the speaker, then confirm',
     volume: '4. Volume', saveVolume: 'Save and apply', volumeDone: 'Volume applied', calibration: '5. Calibration',
     calibrate: 'Start calibration (10 s)', calibrationDone: 'Calibration complete',
@@ -149,6 +156,7 @@ const COPY = {
     clearEventsConfirm: 'Clear the complete local event log?', motionValue: 'Motion', thresholdValue: 'Threshold',
     tuning: 'Detector settings', frontCamera: 'Front camera', rearCamera: 'Rear camera', sensitivity: 'Sensitivity',
     cooldownDelay: 'Post-playback pause', consecutiveFrames: 'Confirmation frames', saveTuning: 'Save detector settings',
+    tuningUnsaved: 'There are unsaved changes.',
     stopToTune: 'Stop the detector before changing camera settings.', seconds: 's',
     bootState: { never: 'not yet verified after reboot', started: 'detector started', waiting_for_route: 'waiting for the verified audio route', blocked: 'startup blocked by readiness checks', failed: 'startup failed' },
     statusText: { idle: 'Ready to start', starting: 'Starting camera', armed: 'Detector armed', triggered: 'Motion detected', playing: 'Playing audio', cooldown: 'Post-playback pause', recovering: 'Recovering camera', audio_route_lost: 'Audio route lost', fault: 'Detector fault' },
@@ -198,6 +206,8 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
   const lastSnapshotAtMsRef = useRef(0);
   const nativeVolumeLoadedRef = useRef(false);
   const nativeSettingsSnapshotRef = useRef('');
+  const tuningDirtyRef = useRef(false);
+  const [tuningDirty, setTuningDirty] = useState(false);
   const [operatorPin, setOperatorPin] = useState('');
   const [operatorPinConfirmation, setOperatorPinConfirmation] = useState('');
 
@@ -215,9 +225,10 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
       setSoundTestConfirmable(false);
       setBusy(null);
     }
-    if (calibrationRunningRef.current && next.status === 'idle') {
+    if (calibrationRunningRef.current && ['idle', 'fault'].includes(next.status)) {
       calibrationRunningRef.current = false;
       setBusy(null);
+      if (next.status === 'fault') setError(lang === 'uk' ? next.message : t.statusText.fault);
     }
     if (motionTestRunningRef.current && ['idle', 'fault', 'audio_route_lost'].includes(next.status)) {
       const wasStoppedByOperator = motionStopRequestedRef.current;
@@ -244,7 +255,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     setKioskState(kiosk);
     setEvents(eventResult.events);
     const nativeSettingsSnapshot = JSON.stringify(nativeSettings);
-    if (nativeSettingsSnapshot !== nativeSettingsSnapshotRef.current) {
+    if (!tuningDirtyRef.current && nativeSettingsSnapshot !== nativeSettingsSnapshotRef.current) {
       nativeSettingsSnapshotRef.current = nativeSettingsSnapshot;
       onSettingsChange(nativeSettings);
     }
@@ -296,6 +307,20 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     await MotionDetector.saveSettings({ settings: next });
     await refreshSetup();
   };
+
+  const updateTuning = (next: DetectorSettings) => {
+    tuningDirtyRef.current = true;
+    setTuningDirty(true);
+    onSettingsChange(next);
+  };
+
+  const saveTuning = async (next: DetectorSettings) => {
+    await MotionDetector.saveSettings({settings: next});
+    nativeSettingsSnapshotRef.current = JSON.stringify(next);
+    tuningDirtyRef.current = false;
+    setTuningDirty(false);
+    await refreshSetup();
+  };
   const cameraGranted = readiness.cameraGranted;
   const soundVerified = readiness.routeVerified;
   const volumeSaved = readiness.audioVolume === volumeDraft;
@@ -337,7 +362,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
       </StepCard>
       <StepCard title={t.audio} complete={Boolean(audioName)}>
         <p className="text-xs text-gray-400 truncate mb-3">{audioName ?? t.noAudio}</p>
-        <button type="button" onClick={() => run('audio', async () => { const audio = await MotionDetector.importAudio(); const next = { ...settings, audioSourceType: 'custom' as const, customAudioId: audio.id }; onSettingsChange(next); await MotionDetector.saveSettings({ settings: next }); setAudioName(audio.name); await refreshSetup(); setBusy(null); })} className="native-action">{busy === 'audio' ? t.preparing : t.import}</button>
+        <button type="button" onClick={() => run('audio', async () => { const audio = await MotionDetector.importAudio(); const next = { ...settings, audioSourceType: 'custom' as const, customAudioId: audio.id }; onSettingsChange(next); setAudioName(audio.name); await refreshSetup(); setBusy(null); })} className="native-action">{busy === 'audio' ? t.preparing : t.import}</button>
       </StepCard>
       <StepCard title={t.route} complete={soundVerified}>
         <RouteBadge route={route} unavailable={t.unavailable} />
@@ -350,13 +375,16 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
             </div>
           </>
         ) : (
-          <button disabled={route.kind === 'unavailable'} type="button" onClick={() => run('route', async () => {
-            soundTestRunningRef.current = true;
-            setSoundTestRunning(true);
-            setSoundTestConfirmable(false);
-            window.setTimeout(() => setSoundTestConfirmable(true), 3000);
-            await MotionDetector.playTest();
-          })} className="native-action mt-3">{busy === 'route' ? t.preparing : soundVerified ? t.routeDone : t.routeAction}</button>
+          <>
+            {route.kind === 'unavailable' && <p className="text-[10px] text-amber-300 mt-3">{t.routeUnavailableHint}</p>}
+            <button disabled={route.kind === 'unavailable'} type="button" onClick={() => run('route', async () => {
+              soundTestRunningRef.current = true;
+              setSoundTestRunning(true);
+              setSoundTestConfirmable(false);
+              window.setTimeout(() => setSoundTestConfirmable(true), 3000);
+              await MotionDetector.playTest();
+            })} className="native-action mt-3">{busy === 'route' ? t.preparing : soundVerified ? t.routeDone : t.routeAction}</button>
+          </>
         )}
       </StepCard>
       <StepCard title={t.volume} complete={volumeSaved}>
@@ -365,7 +393,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
         <p className="text-[10px] text-gray-500 mt-3">{volumeSaved ? t.volumeDone : ''}</p>
       </StepCard>
       <StepCard title={t.calibration} complete={calibrated}>
-        <button type="button" onClick={() => run('calibration', async () => { calibrationRunningRef.current = true; await MotionDetector.calibrate(); })} className="native-action">{busy === 'calibration' ? t.preparing : calibrated ? t.calibrationDone : t.calibrate}</button>
+        <button type="button" onClick={() => run('calibration', async () => { if (tuningDirtyRef.current) await saveTuning(settings); calibrationRunningRef.current = true; await MotionDetector.calibrate(); })} className="native-action">{busy === 'calibration' ? t.preparing : calibrated ? t.calibrationDone : t.calibrate}</button>
       </StepCard>
       <StepCard title={t.motion} complete={motionTestPassed}>
         <p className="text-[10px] text-gray-500 mb-3">{t.motionHint}</p>
@@ -377,14 +405,15 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     <section className="rounded-2xl border border-gray-800 bg-[#111111] p-4 text-left">
       <p className="text-xs font-black uppercase tracking-wide">{t.tuning}</p>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" disabled={detectorIsRunning} onClick={() => onSettingsChange({...settings, cameraFacingMode: 'user'})} className={`native-action ${settings.cameraFacingMode === 'user' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.frontCamera}</button>
-        <button type="button" disabled={detectorIsRunning} onClick={() => onSettingsChange({...settings, cameraFacingMode: 'environment'})} className={`native-action ${settings.cameraFacingMode === 'environment' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.rearCamera}</button>
+        <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'user' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'user' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.frontCamera}</button>
+        <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'environment' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'environment' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.rearCamera}</button>
       </div>
-      <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.sensitivity}</span><span>{settings.sensitivity}%</span></span><input disabled={detectorIsRunning} type="range" min="1" max="100" value={settings.sensitivity} onChange={event => onSettingsChange({...settings, sensitivity: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
-      <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.cooldownDelay}</span><span>{settings.coolDownDelay} {t.seconds}</span></span><input disabled={detectorIsRunning} type="range" min="2" max="60" value={settings.coolDownDelay} onChange={event => onSettingsChange({...settings, coolDownDelay: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
-      <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.consecutiveFrames}</span><span>{settings.requiredConsecutiveFrames}</span></span><input disabled={detectorIsRunning} type="range" min="1" max="5" value={settings.requiredConsecutiveFrames} onChange={event => onSettingsChange({...settings, requiredConsecutiveFrames: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
+      <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.sensitivity}</span><span>{settings.sensitivity}%</span></span><input disabled={detectorIsRunning} type="range" min="1" max="100" value={settings.sensitivity} onChange={event => updateTuning({...settings, sensitivity: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
+      <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.cooldownDelay}</span><span>{settings.coolDownDelay} {t.seconds}</span></span><input disabled={detectorIsRunning} type="range" min="2" max="60" value={settings.coolDownDelay} onChange={event => updateTuning({...settings, coolDownDelay: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
+      <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.consecutiveFrames}</span><span>{settings.requiredConsecutiveFrames}</span></span><input disabled={detectorIsRunning} type="range" min="1" max="5" value={settings.requiredConsecutiveFrames} onChange={event => updateTuning({...settings, requiredConsecutiveFrames: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
       {detectorIsRunning && <p className="mt-3 text-[10px] text-amber-300">{t.stopToTune}</p>}
-      <button type="button" disabled={detectorIsRunning} onClick={() => void run('volume', async () => { await MotionDetector.saveSettings({settings}); nativeSettingsSnapshotRef.current = JSON.stringify(settings); await refreshSetup(); setBusy(null); })} className="native-action mt-4">{busy === 'volume' ? t.preparing : t.saveTuning}</button>
+      {tuningDirty && <p className="mt-3 text-[10px] text-amber-300">{t.tuningUnsaved}</p>}
+      <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { await saveTuning(settings); setBusy(null); })} className="native-action mt-4">{busy === 'tuning' ? t.preparing : t.saveTuning}</button>
     </section>
 
     <section className={`rounded-3xl border p-5 text-left ${kioskState?.autoStartAfterRebootEnabled ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-gray-800 bg-[#111111]'}`}>

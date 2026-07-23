@@ -80,6 +80,7 @@ class MotionDetectorService : LifecycleService() {
     private var calibrationJob: Job? = null
     private var cooldownJob: Job? = null
     private var cameraWatchdogJob: Job? = null
+    private var cameraRecoveryJob: Job? = null
     @Volatile private var isCalibrating = false
     @Volatile private var isTestingAudio = false
     @Volatile private var routeTestStartedAtMs = 0L
@@ -107,8 +108,9 @@ class MotionDetectorService : LifecycleService() {
         // LifecycleService advances its LifecycleRegistry here. Without this
         // call CameraX can bind the use case but never open the camera.
         super.onStartCommand(intent, flags, startId)
-        promoteToForeground()
-        when (intent?.action ?: ACTION_START) {
+        val action = intent?.action ?: ACTION_START
+        promoteToForeground(action)
+        when (action) {
             ACTION_START -> {
                 startedFromAutoResume = false
                 startArmedRun()
@@ -496,7 +498,8 @@ class MotionDetectorService : LifecycleService() {
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
-                    fail("Не вдалося відтворити аудіо: ${error.errorCodeName}")
+                    Log.e(TAG, "Audio playback failure for ${audio.name}", error)
+                    fail("Не вдалося відтворити вибраний аудіофайл. Виберіть інший файл і повторіть тест")
                 }
             })
             exo.setMediaItem(MediaItem.fromUri(Uri.fromFile(audio)))
@@ -570,21 +573,41 @@ class MotionDetectorService : LifecycleService() {
 
     private fun recoverCamera(error: Exception) {
         Log.e(TAG, "Camera pipeline failure", error)
-        if (isCalibrating || DetectorRuntime.current().status !in setOf(DetectorStatus.ARMED, DetectorStatus.STARTING)) {
+        if (cameraRecoveryJob?.isActive == true) return
+        // RECOVERING belongs here: a failure raised while a retry is already in
+        // flight must feed the same backoff, not drop the exhibit into FAULT.
+        // Calibration and manual starts still fail fast, because an operator is
+        // standing at the phone and waiting for an answer.
+        if (isCalibrating ||
+            DetectorRuntime.current().status !in setOf(
+                DetectorStatus.ARMED,
+                DetectorStatus.STARTING,
+                DetectorStatus.RECOVERING,
+            )
+        ) {
             fail("Не вдалося запустити вибрану камеру. Перевірте вибір камери та повторіть спробу")
             return
         }
         cameraRecoveryAttempts += 1
-        if (cameraRecoveryAttempts > MAX_CAMERA_RECOVERY_ATTEMPTS) {
-            fail("Камера не відновилась після $MAX_CAMERA_RECOVERY_ATTEMPTS спроб")
-            return
-        }
+        // Deliberately unbounded. A commissioned exhibit stands unattended, so
+        // surrendering the camera to another app for good is worse than
+        // retrying all night; the interval grows instead of the attempts
+        // running out. The counter resets as soon as a frame arrives.
+        val retryDelayMs = CameraHealth.recoveryDelayMs(
+            attempt = cameraRecoveryAttempts,
+            baseDelayMs = CAMERA_RECOVERY_DELAY_MS,
+            maxDelayMs = CAMERA_RECOVERY_MAX_DELAY_MS,
+        )
         stopCamera()
-        serviceScope.launch {
+        cameraRecoveryJob = serviceScope.launch {
             store.recordCameraRestart()
-            transition(DetectorStatus.RECOVERING, "Відновлення камери ($cameraRecoveryAttempts/$MAX_CAMERA_RECOVERY_ATTEMPTS)")
-            delay(CAMERA_RECOVERY_DELAY_MS)
+            transition(
+                DetectorStatus.RECOVERING,
+                "Відновлення камери (спроба $cameraRecoveryAttempts, наступна через ${retryDelayMs / 1000} с)",
+            )
+            delay(retryDelayMs)
             startCamera(DetectorStatus.STARTING, "Повторний запуск камери")
+            cameraRecoveryJob = null
         }
     }
 
@@ -620,6 +643,8 @@ class MotionDetectorService : LifecycleService() {
         }
         calibrationJob?.cancel()
         cooldownJob?.cancel()
+        cameraRecoveryJob?.cancel()
+        cameraRecoveryJob = null
         player?.stop()
         player?.release()
         player = null
@@ -656,6 +681,8 @@ class MotionDetectorService : LifecycleService() {
         serviceScope.launch { store.recordError() }
         calibrationJob?.cancel()
         cooldownJob?.cancel()
+        cameraRecoveryJob?.cancel()
+        cameraRecoveryJob = null
         player?.release()
         player = null
         stopCamera()
@@ -707,13 +734,19 @@ class MotionDetectorService : LifecycleService() {
         if (!shouldHold && wakeLock.isHeld) wakeLock.release()
     }
 
-    private fun promoteToForeground() {
+    private fun promoteToForeground(action: String) {
         val notification = MotionNotifications.service(this, DetectorRuntime.current())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val foregroundTypes = if (action in CAMERA_ACTIONS) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            } else {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            }
             startForeground(
                 MotionNotifications.SERVICE_NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+                foregroundTypes,
             )
         } else {
             startForeground(MotionNotifications.SERVICE_NOTIFICATION_ID, notification)
@@ -746,6 +779,7 @@ class MotionDetectorService : LifecycleService() {
         calibrationJob?.cancel()
         cooldownJob?.cancel()
         cameraWatchdogJob?.cancel()
+        cameraRecoveryJob?.cancel()
         player?.release()
         stopCamera()
         routeMonitor.stop()
@@ -812,8 +846,9 @@ class MotionDetectorService : LifecycleService() {
         private const val CAMERA_RECOVERY_DELAY_MS = 1_500L
         private const val CAMERA_WATCHDOG_INTERVAL_MS = 3_000L
         private const val CAMERA_STALL_TIMEOUT_MS = 8_000L
-        private const val MAX_CAMERA_RECOVERY_ATTEMPTS = 3
+        private const val CAMERA_RECOVERY_MAX_DELAY_MS = 30_000L
         private const val MAX_EVENTS = 20
+        private val CAMERA_ACTIONS = setOf(ACTION_START, ACTION_AUTO_START, ACTION_CALIBRATE)
 
         @Volatile private var activeInstance: MotionDetectorService? = null
 
