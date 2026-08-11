@@ -96,6 +96,12 @@ Task policy is missing. It needs no operator PIN. Pressing it applies the
 persistent HOME preference, Lock Task allowlist, keyguard policy and fixed
 camera/notification/Bluetooth grants.
 
+On Android 16 / API 36 Galaxy A07 serial `R8YL41DLGLR`, this action applied all
+four policy groups without a launcher chooser. The live activity state became
+`mLockTaskModeState=LOCKED`, and all three runtime permissions were
+`POLICY_FIXED`. This serial-scoped observation is not a substitute for running
+the same checks on another phone or Android release.
+
 Earlier builds hid this button when the app was already HOME but Lock Task was
 unset, and required temporarily handing HOME to Samsung Launcher. That
 workaround is obsolete. Do not use it on 1.3.17; if the button is absent,

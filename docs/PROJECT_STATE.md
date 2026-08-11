@@ -5,9 +5,9 @@ Last verified: 2026-08-11
 ## Release
 
 - Current release candidate: `1.3.17`, Android `versionCode 22`.
-- Candidate source checkpoint: pending the authorized release commit in this
-  session. Do not install a pre-commit build.
-- Pre-commit validation APK SHA-256 (to be replaced by the committed rebuild):
+- Installed source checkpoint:
+  `f8052988b8ca6ad8332c56852fad8028cec3f508`, pushed to `origin/main`.
+- Exact signed APK rebuilt from that checkpoint, SHA-256:
   `840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7`.
 - `1.3.17` preserves the reviewed 1.3.16 behavior and uses a new version code
   because the freshly rebuilt signed APK is a different binary from the
@@ -39,9 +39,9 @@ Last verified: 2026-08-11
 - Android native unit tests: 26/26 passed. The four new route-selection tests
   cover same-name SCO/A2DP preference, unverified A2DP selection, SCO-only
   rejection, and fail-closed approved-name matching.
-- `lintDebug`, `assembleDebug`, and signed `assembleRelease`: passed with JDK
-  21. Lint was run separately from release assembly after a combined Gradle
-  invocation exposed a temporary KAPT/Lint file race.
+- Android native unit tests, lint, `assembleDebug`, and signed
+  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL`, 284
+  actionable tasks).
 - Exact signed APK: v2 signature valid, expected certificate, ZIP/zipalign
   valid, R8 Capacitor annotation descriptor present, not debuggable, no
   `INTERNET`. The release audit also proved that all 20 repository `audio/`
@@ -49,13 +49,38 @@ Last verified: 2026-08-11
 
 ## Target museum phone
 
-- The next installation target is Samsung Galaxy A07 serial `R8YL41DLGLR`
-  (`SM-A075F`), Android 16 / API 36. On 2026-08-11 ADB proved one owner user,
+- The current installation target is Samsung Galaxy A07 serial `R8YL41DLGLR`
+  (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
   zero accounts, no Device Owner, Samsung Launcher as HOME, Lock Task `NONE`,
-  and neither `ua.alexsnig.exhibitmotion` nor `com.guidemuseum` installed.
-- The exact 1.3.17/code 22 APK has not been installed on `R8YL41DLGLR` yet.
-  No Device Owner, HOME, OTA, permission, or application state was changed
-  during the preparation audit.
+  and neither `ua.alexsnig.exhibitmotion` nor `com.guidemuseum` installed. No
+  factory reset was needed or performed.
+- The exact 1.3.17/code 22 APK was installed fresh on 2026-08-11. Its pulled
+  installed `base.apk` is byte-identical to the workstation release, SHA-256
+  `840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7`;
+  package metadata records `firstInstallTime=2026-08-11 15:09:28`.
+- Exhibit Motion is Device Owner type 0 for user 0. Android 16 records its
+  persistent preferred HOME activity and `LockTaskPolicy` package; the live
+  activity state before reboot was `mLockTaskModeState=LOCKED` with Exhibit
+  Motion resumed. Camera, notifications, and Bluetooth permissions are
+  granted and `POLICY_FIXED`.
+- Samsung OTA packages `com.wssyncmldm`,
+  `com.samsung.android.app.updatecenter`, and `com.sec.android.soagent` are
+  `disabled-user`; global `ota_disable_automatic_update` is `1`.
+- The native 1.3.17 operator UI visibly exposed the offline catalog selector.
+  Opening and scrolling its Android list on this serial exposed all 20 bundled
+  filenames. It also reported Device Owner, Home app, Lock Task, and kiosk lock
+  ready. No narration was selected and no operator PIN was created: the
+  intended figure, approved physical output, audible confirmation, and PIN
+  belong to the local installation operator and must not be guessed by
+  automation.
+- An authorized cold reboot completed after provisioning. Restarting the host
+  ADB server re-detected the handset; Android reported boot count 2, Exhibit
+  Motion as the default and top-resumed HOME activity, and Lock Task still
+  `LOCKED`. Camera permission and the catalog selector remained present.
+- No `MotionDetectorService` ran and no `action.AUTO_START` occurred after this
+  reboot because the operator wizard and auto-start/PIN enable step have not
+  been completed. This is an explicit open commissioning gate, not a failed
+  boot-resume test.
 - Previous runtime evidence below belongs only to the earlier Samsung Galaxy
   A07 serial `R8YY929R75R` (`SM-A075F`), Android 15 / API 35. It cannot be
   transferred as physical acceptance for the new Android 16 phone.
@@ -155,9 +180,11 @@ Last verified: 2026-08-11
 
 The current status is **RELEASE CANDIDATE**, not final exhibition acceptance.
 
-1. Install the exact verified 1.3.17 APK on `R8YL41DLGLR`, provision Device
-   Owner and Lock Task only with explicit approval, complete the operator
-   wizard locally, then cold-reboot and prove `action.AUTO_START`. Do not
+1. On `R8YL41DLGLR`, complete the operator wizard locally: confirm the mounted
+   camera, select the intended narration, connect the final approved route,
+   physically confirm audibility, save volume, calibrate, run the motion test,
+   and enter the operator-owned PIN. Then cold-reboot, perform a Samsung first
+   unlock if the handset requests it, and prove `action.AUTO_START`. Do not
    disclose, guess, or automate the PIN.
 2. Record near/far samples at approximately 4–5 m, 2 m, and 0.5–1 m and prove
    that intended visitor movement triggers without treating whole-frame light
@@ -166,9 +193,9 @@ The current status is **RELEASE CANDIDATE**, not final exhibition acceptance.
    AUX or Bluetooth speaker, then prove playback end, cooldown, and automatic
    re-arm at least twice with the screen off. Verify that the handset speaker
    remains silent.
-4. Commit the exact reviewed 1.3.17 source, rebuild from that commit, verify the
-   resulting APK, and update the client package checksum. Do not publish the
-   current working-tree candidate as the final handoff.
+4. If a client handoff is requested, place only this exact APK, the staff and
+   technician PDFs, and a matching `SHA256SUMS.txt` in the package. Do not put
+   signing material or engineering evidence in the handoff.
 5. Run the documented 8-hour acceptance test with charging, heat observation,
    at least 100 triggers, route loss/return, permission recovery, and at least
    five full power cycles.
