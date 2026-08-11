@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, Download, Headphones, ShieldCheck, SlidersHorizontal, Trash2, Volume2 } from 'lucide-react';
+import { AlertTriangle, Bluetooth, CheckCircle2, Download, Headphones, ShieldCheck, SlidersHorizontal, Trash2, Volume2 } from 'lucide-react';
 import type { DetectorSettings } from '../types';
 import type { Language } from '../utils/lang';
+import { restoreKioskWithVerification } from '../utils/kioskTransition';
 import {
   MotionDetector,
   type NativeAudioRoute,
@@ -10,6 +11,7 @@ import {
   type NativeKioskState,
   type NativeMotionEvent,
   type NativeSetupReadiness,
+  type BundledNativeAudio,
 } from '../native/motionDetector';
 
 interface NativeDetectorPanelProps {
@@ -73,6 +75,10 @@ const ACTION_ERROR_COPY: Record<string, Record<Language, string>> = {
   DEVICE_OWNER_REQUIRED: { uk: 'Для цієї дії потрібен режим Device Owner.', en: 'This action requires Device Owner mode.' },
   AUTOSTART_NOT_READY: { uk: 'Автозапуск ще заблокований незавершеними перевірками.', en: 'Auto-start is still blocked by incomplete checks.' },
   LOCK_TASK_FAILED: { uk: 'Не вдалося увімкнути Lock Task.', en: 'Lock Task could not be enabled.' },
+  MAINTENANCE_MODE_REQUIRED: { uk: 'Спочатку відкрийте операторський режим.', en: 'Open operator mode first.' },
+  BLUETOOTH_SETTINGS_FAILED: { uk: 'Не вдалося відкрити налаштування Bluetooth.', en: 'Bluetooth settings could not be opened.' },
+  AUDIO_VOLUME_FAILED: { uk: 'Android не зміг застосувати гучність до підключеного виходу.', en: 'Android could not apply volume to the connected output.' },
+  DETECTOR_RUNNING: { uk: 'Перед калібруванням зупиніть активний датчик.', en: 'Stop the active detector before calibration.' },
   EXPORT_FAILED: { uk: 'Не вдалося експортувати діагностику.', en: 'Diagnostics could not be exported.' },
 };
 
@@ -92,15 +98,20 @@ const COPY = {
     route: '3. Тест маршруту', routeAction: 'Відтворити тест', routeDone: 'Маршрут перевірено',
     routeUnavailableHint: 'Підключіть AUX або затверджену Bluetooth-колонку. Динамік телефона навмисно не використовується.',
     routeConfirm: 'Чую звук', routeReject: 'Не чую', routeListening: 'Слухайте колонку та підтвердьте',
+    connectBluetooth: 'Підключити Bluetooth-колонку',
+    bluetoothHint: 'Android відкриє системне підключення. Для Bluetooth спочатку від’єднайте AUX — він має пріоритет.',
     volume: '4. Гучність', saveVolume: 'Зберегти та застосувати', volumeDone: 'Гучність застосовано', calibration: '5. Калібрування',
     calibrate: 'Почати калібрування (10 с)', calibrationDone: 'Калібрування завершено',
+    calibrationDoesNotArm: 'Калібрування не вмикає датчик. Після нього виконайте тест руху або натисніть «Увімкнути датчик».',
     motion: '6. Тест руху', motionAction: 'Почати тест руху', finishMotion: 'Завершити тест', cancelMotion: 'Скасувати тест', motionDone: 'Рух і відтворення підтверджено',
     motionBlocked: 'Спочатку завершіть тест маршруту, збережіть гучність і виконайте калібрування.',
-    arm: 'УВІМКНУТИ ДАТЧИК', armed: 'Датчик активний', status: 'Стан системи',
+    arm: 'УВІМКНУТИ ДАТЧИК', armed: 'Датчик активний', running: 'ДАТЧИК ПРАЦЮЄ', status: 'Стан системи',
     unavailable: 'Звук недоступний', diagnostics: 'Діагностика', refresh: 'Оновити', export: 'Експорт JSON',
     noDiagnostics: 'Дані діагностики ще не завантажено', preparing: 'Виконується…',
     motionHint: 'Пройдіть перед камерою. Після сигналу натисніть «Завершити тест».',
+    motionLive: 'Поточний рух / поріг',
     armHint: 'Для увімкнення потрібні всі шість перевірок.', routeHint: 'AUX має пріоритет; динамік телефона не використовується.',
+    rearmHint: 'Після завершення аудіо датчик автоматично витримує паузу та знову очікує рух — повторно натискати не потрібно.',
     events: 'Події', cameraRestarts: 'Перезапуски камери', errors: 'Помилки', battery: 'Батарея',
     cameraFrames: 'Кадри з камери', cameraLive: 'Камера передає кадри',
     frp: 'Захист від скидання',
@@ -113,7 +124,9 @@ const COPY = {
     enablePin: 'PIN оператора для увімкнення', enableKiosk: 'Увімкнути kiosk і автозапуск', lastBoot: 'Останній запуск',
     operatorPin: 'PIN оператора', openMaintenance: 'Відкрити операторський режим', disableAutostart: 'Вимкнути автозапуск',
     maintenanceActive: 'Операторський режим активний: автозапуск тимчасово призупинено, Lock Task відкрито.',
-    returnPin: 'PIN оператора для повернення kiosk', returnKiosk: 'Повернути kiosk', actionFailed: 'Не вдалося виконати дію',
+    returnPin: 'PIN оператора для повернення kiosk', returnKiosk: 'Повернути kiosk',
+    returningKiosk: 'Повертаю kiosk…', kioskRestored: 'Kiosk відновлено: Lock Task активний.',
+    actionFailed: 'Не вдалося виконати дію',
     eventLog: 'Локальний журнал подій', noEvents: 'Подій ще немає', clearEvents: 'Очистити', deleteEvent: 'Видалити подію',
     clearEventsConfirm: 'Очистити весь локальний журнал подій?', motionValue: 'Рух', thresholdValue: 'Поріг',
     tuning: 'Налаштування детектора', frontCamera: 'Фронтальна камера', rearCamera: 'Задня камера', sensitivity: 'Чутливість',
@@ -130,15 +143,20 @@ const COPY = {
     route: '3. Route test', routeAction: 'Play route test', routeDone: 'Route verified',
     routeUnavailableHint: 'Connect AUX or the approved Bluetooth speaker. The phone speaker is intentionally disabled.',
     routeConfirm: 'I hear sound', routeReject: 'No sound', routeListening: 'Listen to the speaker, then confirm',
+    connectBluetooth: 'Connect Bluetooth speaker',
+    bluetoothHint: 'Android opens trusted system pairing. Disconnect AUX first because it has priority over Bluetooth.',
     volume: '4. Volume', saveVolume: 'Save and apply', volumeDone: 'Volume applied', calibration: '5. Calibration',
     calibrate: 'Start calibration (10 s)', calibrationDone: 'Calibration complete',
+    calibrationDoesNotArm: 'Calibration does not arm the detector. After it, run the motion test or tap “Arm detector”.',
     motion: '6. Motion test', motionAction: 'Start motion test', finishMotion: 'Finish test', cancelMotion: 'Cancel test', motionDone: 'Motion and playback confirmed',
     motionBlocked: 'First complete the route test, save volume, and calibrate.',
-    arm: 'ARM DETECTOR', armed: 'Detector armed', status: 'System status',
+    arm: 'ARM DETECTOR', armed: 'Detector armed', running: 'DETECTOR RUNNING', status: 'System status',
     unavailable: 'Sound unavailable', diagnostics: 'Diagnostics', refresh: 'Refresh', export: 'Export JSON',
     noDiagnostics: 'Diagnostics have not been loaded yet', preparing: 'Working…',
     motionHint: 'Move in front of the camera. After the signal, tap “Finish test”.',
+    motionLive: 'Current motion / threshold',
     armHint: 'All six checks are required before arming.', routeHint: 'AUX takes priority; the phone speaker is never used.',
+    rearmHint: 'After audio ends, the detector waits through cooldown and automatically watches for motion again. No second tap is needed.',
     events: 'Events', cameraRestarts: 'Camera restarts', errors: 'Errors', battery: 'Battery',
     cameraFrames: 'Camera frames', cameraLive: 'Camera frames are arriving',
     frp: 'Factory reset protection',
@@ -151,7 +169,9 @@ const COPY = {
     enablePin: 'Operator PIN to enable', enableKiosk: 'Enable kiosk and auto-start', lastBoot: 'Last boot',
     operatorPin: 'Operator PIN', openMaintenance: 'Open operator mode', disableAutostart: 'Disable auto-start',
     maintenanceActive: 'Operator mode is active: auto-start is paused and Lock Task is open.',
-    returnPin: 'Operator PIN to restore kiosk', returnKiosk: 'Restore kiosk', actionFailed: 'Action failed',
+    returnPin: 'Operator PIN to restore kiosk', returnKiosk: 'Restore kiosk',
+    returningKiosk: 'Restoring kiosk…', kioskRestored: 'Kiosk restored: Lock Task is active.',
+    actionFailed: 'Action failed',
     eventLog: 'Local event log', noEvents: 'No events yet', clearEvents: 'Clear', deleteEvent: 'Delete event',
     clearEventsConfirm: 'Clear the complete local event log?', motionValue: 'Motion', thresholdValue: 'Threshold',
     tuning: 'Detector settings', frontCamera: 'Front camera', rearCamera: 'Rear camera', sensitivity: 'Sensitivity',
@@ -188,6 +208,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
   const [readiness, setReadiness] = useState<NativeSetupReadiness>(EMPTY_READINESS);
   const [kioskState, setKioskState] = useState<NativeKioskState | null>(null);
   const [audioName, setAudioName] = useState<string | null>(null);
+  const [audioLibrary, setAudioLibrary] = useState<BundledNativeAudio[]>([]);
   const [volumeDraft, setVolumeDraft] = useState(settings.audioVolume);
   const [motionTestRunning, setMotionTestRunning] = useState(false);
   const [motionTestTriggered, setMotionTestTriggered] = useState(false);
@@ -210,6 +231,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
   const [tuningDirty, setTuningDirty] = useState(false);
   const [operatorPin, setOperatorPin] = useState('');
   const [operatorPinConfirmation, setOperatorPinConfirmation] = useState('');
+  const [kioskFeedback, setKioskFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
   const acceptStatus = useCallback((next: NativeDetectorSnapshot) => {
     if (next.updatedAtMs < lastSnapshotAtMsRef.current) return;
@@ -251,6 +273,8 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     acceptStatus(nextStatus);
     setRoute(nextRoute);
     setAudioName(setup.audio?.name ?? null);
+    const library = await MotionDetector.getAudioLibrary();
+    setAudioLibrary(library.items);
     setReadiness(setup.readiness);
     setKioskState(kiosk);
     setEvents(eventResult.events);
@@ -328,7 +352,6 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
   const motionTestPassed = readiness.motionTestPassed;
   const motionSetupComplete = cameraGranted && readiness.audioImported && soundVerified && volumeSaved && calibrated;
   const checksComplete = motionSetupComplete && motionTestPassed;
-  const statusIsArmed = snapshot.status === 'armed';
   const detectorIsRunning = ['starting', 'armed', 'triggered', 'playing', 'cooldown', 'recovering'].includes(snapshot.status);
   const pinIsValid = /^\d{4,12}$/.test(operatorPin);
   const pinMatches = operatorPin === operatorPinConfirmation;
@@ -362,6 +385,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
       </StepCard>
       <StepCard title={t.audio} complete={Boolean(audioName)}>
         <p className="text-xs text-gray-400 truncate mb-3">{audioName ?? t.noAudio}</p>
+        {audioLibrary.length > 0 && <select aria-label={t.audio} value={audioLibrary.some(item => item.name === audioName) ? audioName ?? '' : ''} onChange={event => { if (!event.target.value) return; void run('audio', async () => { const audio = await MotionDetector.selectBundledAudio({ assetName: event.target.value }); const next = { ...settings, audioSourceType: 'custom' as const, customAudioId: audio.id }; onSettingsChange(next); setAudioName(audio.name); await refreshSetup(); setBusy(null); }); }} className="w-full rounded-xl border border-gray-700 bg-black px-3 py-2 text-xs text-slate-100 mb-2"><option value="">{lang === 'uk' ? 'Вибрати фігуру з каталогу' : 'Choose a figure from catalog'}</option>{audioLibrary.map(item => <option key={item.assetName} value={item.assetName}>{item.name}</option>)}</select>}
         <button type="button" onClick={() => run('audio', async () => { const audio = await MotionDetector.importAudio(); const next = { ...settings, audioSourceType: 'custom' as const, customAudioId: audio.id }; onSettingsChange(next); setAudioName(audio.name); await refreshSetup(); setBusy(null); })} className="native-action">{busy === 'audio' ? t.preparing : t.import}</button>
       </StepCard>
       <StepCard title={t.route} complete={soundVerified}>
@@ -386,6 +410,8 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
             })} className="native-action mt-3">{busy === 'route' ? t.preparing : soundVerified ? t.routeDone : t.routeAction}</button>
           </>
         )}
+        <button disabled={detectorIsRunning || soundTestRunning} type="button" onClick={() => void run('route', async () => { await MotionDetector.openBluetoothSettings(); setBusy(null); })} className="native-action mt-3"><Bluetooth className="inline-block w-4 h-4 mr-2 -mt-0.5" />{t.connectBluetooth}</button>
+        <p className="text-[10px] text-gray-500 mt-2">{t.bluetoothHint}</p>
       </StepCard>
       <StepCard title={t.volume} complete={volumeSaved}>
         <div className="flex items-center gap-3"><Volume2 className="w-4 h-4 text-[#F27D26]" /><input aria-label={t.volume} type="range" min="0" max="100" value={volumeDraft} onChange={event => setVolumeDraft(Number(event.target.value))} className="flex-1 accent-[#F27D26]" /><span className="w-9 text-right text-xs font-mono">{volumeDraft}%</span></div>
@@ -393,10 +419,12 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
         <p className="text-[10px] text-gray-500 mt-3">{volumeSaved ? t.volumeDone : ''}</p>
       </StepCard>
       <StepCard title={t.calibration} complete={calibrated}>
-        <button type="button" onClick={() => run('calibration', async () => { if (tuningDirtyRef.current) await saveTuning(settings); calibrationRunningRef.current = true; await MotionDetector.calibrate(); })} className="native-action">{busy === 'calibration' ? t.preparing : calibrated ? t.calibrationDone : t.calibrate}</button>
+        <button disabled={detectorIsRunning} type="button" onClick={() => run('calibration', async () => { if (tuningDirtyRef.current) await saveTuning(settings); calibrationRunningRef.current = true; await MotionDetector.calibrate(); })} className="native-action">{busy === 'calibration' ? t.preparing : calibrated ? t.calibrationDone : t.calibrate}</button>
+        <p className="text-[10px] text-gray-500 mt-3">{t.calibrationDoesNotArm}</p>
       </StepCard>
       <StepCard title={t.motion} complete={motionTestPassed}>
         <p className="text-[10px] text-gray-500 mb-3">{t.motionHint}</p>
+        {motionTestRunning && <p className="text-[10px] text-emerald-300 mb-3">{t.motionLive}: {snapshot.motionPercent.toFixed(1)}% / {settings.noiseThreshold.toFixed(1)}%</p>}
         {!motionTestRunning && !motionSetupComplete && <p className="text-[10px] text-amber-300 mb-3">{t.motionBlocked}</p>}
         {motionTestRunning ? <div className="grid gap-2 sm:grid-cols-2"><button type="button" disabled={!motionTestTriggered} onClick={() => run('motion', async () => { motionStopRequestedRef.current = true; await MotionDetector.finishMotionTest(); motionTestRunningRef.current = false; setMotionTestRunning(false); await refreshSetup(); setBusy(null); })} className="native-action">{t.finishMotion}</button><button type="button" onClick={() => run('motion', async () => { motionStopRequestedRef.current = true; await MotionDetector.stop(); motionTestRunningRef.current = false; setMotionTestRunning(false); setMotionTestTriggered(false); setBusy(null); })} className="native-action">{t.cancelMotion}</button></div> : <button disabled={!motionSetupComplete} type="button" onClick={() => run('motion', async () => { motionStopRequestedRef.current = false; setMotionTestTriggered(false); motionTestRunningRef.current = true; setMotionTestRunning(true); try { await MotionDetector.start(); setBusy(null); } catch (error) { motionTestRunningRef.current = false; setMotionTestRunning(false); throw error; } })} className="native-action">{busy === 'motion' ? t.preparing : motionTestPassed ? t.motionDone : t.motionAction}</button>}
       </StepCard>
@@ -464,12 +492,40 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
           <div className="grid gap-2 sm:grid-cols-2"><button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.unlockKiosk({ pin: operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.openMaintenance}</button><button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.setAutoStartAfterReboot({ enabled: false, operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.disableAutostart}</button></div>
         </div>}
 
-        {kioskState.maintenanceMode && <div className="mt-4 space-y-2"><p className="text-[11px] text-amber-200">{t.maintenanceActive}</p><input value={operatorPin} onChange={event => setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 12))} inputMode="numeric" type="password" autoComplete="current-password" placeholder={t.returnPin} className="native-input" /><button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.lockKiosk({ operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.returnKiosk}</button></div>}
+        {kioskFeedback && <p role={kioskFeedback.kind === 'error' ? 'alert' : 'status'} aria-live="polite" className={`mt-4 rounded-xl border p-3 text-[11px] ${kioskFeedback.kind === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>{kioskFeedback.message}</p>}
+
+        {kioskState.maintenanceMode && <div className="mt-4 space-y-2">
+          <p className="text-[11px] text-amber-200">{t.maintenanceActive}</p>
+          <input value={operatorPin} onChange={event => { setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 12)); setKioskFeedback(null); }} inputMode="numeric" type="password" autoComplete="current-password" placeholder={t.returnPin} className="native-input" />
+          <button
+            disabled={!pinIsValid || busy === 'kiosk'}
+            type="button"
+            onClick={() => void run('kiosk', async () => {
+              setKioskFeedback(null);
+              try {
+                const next = await restoreKioskWithVerification(
+                  () => MotionDetector.lockKiosk({operatorPin}),
+                  () => MotionDetector.getKioskState(),
+                );
+                setKioskState(next);
+                setOperatorPin('');
+                setKioskFeedback({kind: 'success', message: t.kioskRestored});
+              } catch (actionError) {
+                setKioskFeedback({kind: 'error', message: localizedActionError(actionError, lang, t.actionFailed)});
+                throw actionError;
+              } finally {
+                setBusy(null);
+              }
+            })}
+            className="native-action"
+          >{busy === 'kiosk' ? t.returningKiosk : t.returnKiosk}</button>
+        </div>}
       </>}
     </section>
 
     <section className="rounded-3xl border border-gray-800 bg-[#111111] p-5 text-left">
-      <button disabled={!checksComplete || statusIsArmed} type="button" onClick={() => run('arm', async () => { await MotionDetector.start(); setBusy(null); })} className="w-full h-14 rounded-2xl bg-[#F27D26] text-black text-xs font-black tracking-widest disabled:opacity-35 disabled:cursor-not-allowed flex items-center justify-center gap-2"><ShieldCheck className="w-5 h-5" />{busy === 'arm' ? t.preparing : statusIsArmed ? t.armed : t.arm}</button>
+      <button disabled={!checksComplete || detectorIsRunning} type="button" onClick={() => run('arm', async () => { await MotionDetector.start(); setBusy(null); })} className="w-full h-14 rounded-2xl bg-[#F27D26] text-black text-xs font-black tracking-widest disabled:opacity-35 disabled:cursor-not-allowed flex items-center justify-center gap-2"><ShieldCheck className="w-5 h-5" />{busy === 'arm' ? t.preparing : detectorIsRunning ? t.running : t.arm}</button>
+      {detectorIsRunning && <p className="text-center text-[10px] text-emerald-300 mt-3">{t.rearmHint}</p>}
       {!checksComplete && <p className="text-center text-[10px] text-gray-500 mt-3">{t.armHint}</p>}
     </section>
 

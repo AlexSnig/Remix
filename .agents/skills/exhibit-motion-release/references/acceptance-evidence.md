@@ -7,7 +7,7 @@ artifact or device, observed result, and remaining blocker.
 
 | Gate | Required evidence |
 | --- | --- |
-| Source identity | Git commit, clean relevant diff, matching web and Android versions |
+| Source identity | Pushed Git commit, clean relevant diff, matching web and Android versions |
 | React | `npm run lint`, `npm run test:coverage`, `npm run build` |
 | Browser regression | `npm run test:e2e`; note Browser plugin or Playwright fallback |
 | Android | native unit tests, `lintDebug`, debug assembly, release assembly |
@@ -29,6 +29,9 @@ adb -s SERIAL shell getprop ro.build.version.release
 Before installation, record:
 
 ```bash
+adb -s SERIAL shell pm list users
+adb -s SERIAL shell dumpsys account | grep -m1 "Accounts:"
+adb -s SERIAL shell pm list packages | grep -E "ua.alexsnig.exhibitmotion|com.guidemuseum"
 adb -s SERIAL shell dumpsys package ua.alexsnig.exhibitmotion \
   | grep -E "versionCode=|versionName=|firstInstallTime|lastUpdateTime"
 adb -s SERIAL shell dumpsys device_policy \
@@ -37,9 +40,14 @@ adb -s SERIAL shell dumpsys activity activities \
   | grep -E "mLockTaskModeState|ResumedActivity"
 ```
 
+For a fresh phone, additionally prove that no Device Owner exists before
+provisioning. Do not factory-reset without a separate explicit approval.
+
 After `adb install -r` and reboot, prove:
 
-- expected version is installed and `firstInstallTime` is unchanged;
+- expected version is installed; preserve `firstInstallTime` on an update and
+  record the new value on a fresh install;
+- the installed `base.apk` SHA-256 equals the verified release artifact;
 - imported audio and calibration were not erased;
 - camera, notification, and Bluetooth permissions remain granted;
 - Device Owner and Lock Task policy remain;
@@ -47,6 +55,9 @@ After `adb install -r` and reboot, prove:
 - the detector starts from `action.AUTO_START` when operator mode is closed and
   the approved route is available;
 - the partial wake lock and CameraX client are present while armed.
+
+On a fresh phone also prove Device Owner type `0`, the exact Lock Task package,
+Exhibit Motion as persistent HOME, and the OTA-package state from the runbook.
 
 ## Physical acceptance
 

@@ -34,8 +34,8 @@ android {
         applicationId "ua.alexsnig.exhibitmotion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "1.3.2"
+        versionCode 22
+        versionName "1.3.17"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -71,6 +71,11 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+    // The exhibit audio catalog is shipped inside every APK. The source folder
+    // stays at repository root so the same masters can be staged independently.
+    sourceSets {
+        main.assets.srcDir("$rootDir/../audio")
     }
 }
 

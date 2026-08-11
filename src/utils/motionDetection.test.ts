@@ -31,9 +31,10 @@ describe('motion detection', () => {
     expect(shouldTriggerMotion(1, 1.5, 70, 2, 2)).toBe(false);
   });
 
-  it('derives a stable threshold from the 95th percentile', () => {
+  it('derives background noise robustly and ignores movement outliers', () => {
     expect(calibratedThreshold([])).toBe(0.5);
-    expect(calibratedThreshold([0.1, 0.2, 0.3, 0.4, 2])).toBe(2.5);
-    expect(calibratedThreshold([100])).toBe(25);
+    expect(calibratedThreshold([0.1, 0.2, 0.2, 0.3, 0.3, 0.3, 0.4, 0.4, 30, 80])).toBe(1.4);
+    expect(calibratedThreshold([1, 1.2, 1.3, 1.5, 1.7])).toBe(3);
+    expect(calibratedThreshold(Array.from({length: 10}, () => 100))).toBe(10);
   });
 });

@@ -65,6 +65,15 @@ export function shouldTriggerMotion(
 export function calibratedThreshold(samples: number[], minimum = 0.5): number {
   if (samples.length === 0) return minimum;
   const sorted = samples.toSorted((a, b) => a - b);
-  const percentileIndex = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95));
-  return Math.min(25, Math.max(minimum, Number((sorted[percentileIndex] + 0.5).toFixed(1))));
+  const median = medianOfSorted(sorted);
+  const deviations = sorted.map(value => Math.abs(value - median)).toSorted((a, b) => a - b);
+  const medianAbsoluteDeviation = medianOfSorted(deviations);
+  return Math.min(10, Math.max(minimum, Number((median + 6 * medianAbsoluteDeviation + 0.5).toFixed(1))));
+}
+
+function medianOfSorted(values: number[]): number {
+  const middle = Math.floor(values.length / 2);
+  return values.length % 2 === 0
+    ? (values[middle - 1] + values[middle]) / 2
+    : values[middle];
 }

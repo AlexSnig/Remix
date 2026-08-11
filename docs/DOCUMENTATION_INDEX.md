@@ -30,8 +30,9 @@ this documentation index.
 - [RELEASE_AND_HANDOFF.md](RELEASE_AND_HANDOFF.md) — versioning, automated
   gates, signed APK verification, target-phone update, retention, and Git
   publishing.
-- [DEVICE_OWNER_KIOSK.md](DEVICE_OWNER_KIOSK.md) — factory-reset phone
-  commissioning, Device Owner, Lock Task, operator maintenance, and cold boot.
+- [DEVICE_OWNER_KIOSK.md](DEVICE_OWNER_KIOSK.md) — guarded fresh-phone
+  commissioning, Device Owner, Lock Task, operator maintenance, and cold boot;
+  factory reset is used only when prerequisites fail and is separately approved.
 
 ## Museum staff
 

@@ -1,5 +1,119 @@
 # Release notes
 
+## 1.3.17 — Traceable build for the next museum phone
+
+- Preserves the reviewed 1.3.16 behavior while assigning a new Android
+  `versionCode` to the freshly rebuilt signed APK for the next museum phone.
+- Prevents the new binary from being distributed under the already-used
+  1.3.16/code 21 identity; no camera, audio, kiosk, or operator behavior changes
+  are introduced by this version-only release.
+- Requires separate Android 16 / API 36 runtime and physical acceptance on the
+  new Galaxy A07 serial before exhibition-readiness can be claimed.
+
+## 1.3.16 — Bluetooth narration uses the media endpoint
+
+- Rejects Bluetooth SCO/call endpoints for museum narration and selects only
+  A2DP or BLE media outputs.
+- Fixes Samsung speakers such as `S207U`, which Android exposes simultaneously
+  as SCO and A2DP under the same product name; the old resolver could pin
+  ExoPlayer to SCO and produce silence plus BTCVSD/AudioTrack errors.
+- Logs the exact output ID, Android device type, and name selected for playback
+  so target-phone routing can be audited without treating logs as proof that a
+  person heard the speaker.
+- Versioned as Android `versionCode 21`.
+
+## 1.3.15 — Catalog selector included in the Android WebView
+
+- Rebuilds and synchronizes the Capacitor WebView bundle before packaging the
+  APK, so the operator panel exposes all bundled figure-audio files instead of
+  showing only the manual import action.
+- Adds a release audit that rejects an APK when the native audio catalog is
+  present but the packaged WebView bundle is stale and lacks the catalog API.
+- Versioned as Android `versionCode 20` because the installed 1.3.14 binary did
+  not include the selector UI even though its APK contained the audio files.
+
+## 1.3.14 — Bundled figure audio catalog
+
+- Packages every audio file from the repository `audio/` folder into the APK,
+  so each commissioned phone receives the same offline catalog.
+- Adds an operator catalog selector; choosing a figure copies only the selected
+  narration into private app storage and keeps it as the active detector audio.
+- Keeps manual audio import available for commissioning overrides.
+- Versioned as Android `versionCode 19`; release and physical-phone gates still
+  require the signed APK and exact-device acceptance.
+
+## 1.3.7 — Kiosk return is independent from detector commissioning
+
+- Allows a valid operator PIN to close maintenance and restore Android Lock
+  Task even when calibration, route verification, or the motion test is still
+  incomplete.
+- Keeps those detector-readiness blockers visible and continues to prevent
+  unattended camera auto-start until they are resolved. They no longer trap
+  the operator outside kiosk or make “Restore kiosk” appear broken.
+
+## 1.3.6 — Detector recovery after an in-place APK update
+
+- Restarts the detector after Android replaces the APK while kiosk auto-start
+  is enabled. Package replacement kills the old foreground service without
+  changing the boot counter, so the earlier one-start-per-boot guard could
+  leave the camera stopped until the next reboot or a manual arm.
+- Keeps the duplicate-start guard when the foreground service is already
+  alive. Ordinary Activity resumes do not restart CameraX.
+
+## 1.3.5 — Reliable operator return to kiosk
+
+- Shows progress directly on the “Restore kiosk” button and reports success
+  beside the kiosk controls instead of leaving the operator to infer whether
+  Android accepted the action.
+- Shows an incorrect-PIN or Lock Task failure beside the button. Previously
+  kiosk errors appeared only at the top of the long setup page and were easy to
+  miss.
+- Reads the Android kiosk state back after the action and only reports success
+  when Lock Task is active and maintenance mode is closed.
+- Recovers the UI if Samsung enters Lock Task but the original Capacitor call
+  does not resolve during the Activity transition.
+
+## 1.3.4 — Robust calibration for near and far movement
+
+- Replaces the calibration 95th percentile with a median/MAD background-noise
+  estimate. A person briefly crossing the front camera during the ten-second
+  calibration can no longer raise the motion threshold to the maximum and make
+  distant visitors effectively invisible.
+- Keeps six median absolute deviations plus a 0.5 percentage-point safety
+  margin above the measured stationary background. This retains headroom for
+  exposure and sensor noise without learning real visitor movement as noise.
+- Aligns the maximum calibrated and stored threshold with the operator control
+  at 10%. Existing values above 10% are safely clamped when loaded and replaced
+  by the next calibration.
+- Applies the same formula and bounds in the native Android detector and the
+  browser fallback, with regression tests for movement outliers, elevated
+  background noise, and the upper bound.
+
+## 1.3.3 — Background detector controls and physical output volume
+
+- Prevents a calibration command from interrupting an active detector. The
+  native plugin rejects the action, the service has a second defensive guard,
+  and the operator button is disabled while the detector is starting, armed,
+  playing, cooling down, or recovering.
+- States explicitly that calibration does not arm the detector. After an idle
+  calibration the operator must complete the motion test or deliberately arm
+  it; commissioning can no longer leave a silent ambiguity.
+- Limits WebView status telemetry to two updates per second and updates the
+  foreground notification only when its visible content changes. Camera
+  analysis still runs at up to 10 frames per second and triggers immediately.
+- Logs one classified motion sample per second as `below_threshold`,
+  `candidate`, or `global_change`, including the saved threshold and ceiling.
+  This provides near/far evidence without exposing raw camera frames.
+- Applies the configured volume to Android's media stream as well as ExoPlayer,
+  and reports a short operator error if the system rejects the change.
+- Keeps a route test playing until the operator explicitly selects “Чую звук”
+  or “Не чую”; reaching the end of the narration is not evidence that a
+  speaker was audible.
+- Adds a maintenance-only path to Android's trusted Bluetooth settings. The app
+  still never scans, silently pairs, or approves an arbitrary speaker.
+- Ignores duplicate arm commands while the detector is already running and
+  makes cooldown/re-arm behavior explicit in the operator panel and Logcat.
+
 ## 1.3.2 — Reliable audio import, camera selection, and recovery
 
 - Rejects corrupt or mislabeled audio before it replaces the last working file.

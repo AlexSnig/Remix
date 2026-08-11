@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- A commissioned exhibit must recover its approved Bluetooth speaker
          after a power cut with nobody present. BLUETOOTH_CONNECT is what lets
          the app read adapter state and turn the radio back on; a Device Owner

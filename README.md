@@ -16,7 +16,9 @@ and regression testing.
 - The foreground Kotlin service owns CameraX analysis (`640 × 480`, 10 FPS,
   `STRATEGY_KEEP_ONLY_LATEST`) and Media3 playback. It has no `INTERNET`
   permission and does not rely on Chrome or a network connection at runtime.
-- Audio is imported into app-private Android storage. Playback prefers AUX,
+- The APK ships the repository `audio/` catalog offline. Selecting one entry
+  validates and copies it into app-private Android storage; manual import stays
+  available for an approved master outside the catalog. Playback prefers AUX,
   uses Bluetooth only as an alternative, and never falls back to the phone
   speaker. A route change invalidates the sound test and blocks new triggers.
 - The Android operator workflow is: camera permission → local audio import →
@@ -87,7 +89,8 @@ adb logcat -s ExhibitMotion MotionDetector CameraX AndroidRuntime
 ```
 
 Before an unattended installation, verify camera permission and the camera
-selected for the physical mount (currently front camera on the Galaxy A07),
+selected for the physical mount (the earlier accepted Galaxy A07 used the
+front camera; confirm the choice independently on every new serial),
 imported-audio playback through the intended AUX/Bluetooth route,
 route-loss lockout and re-arm, repeated motion triggers, charging, thermal
 behaviour, app switching, and the dedicated-device cold-boot matrix. A

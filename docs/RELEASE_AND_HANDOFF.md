@@ -44,6 +44,11 @@ Any behavior that reaches a device requires one traceable version:
 - update `docs/PROJECT_STATE.md`;
 - never ship two binaries under one `versionCode`.
 
+If a freshly rebuilt APK has a different SHA-256 from a binary already used
+under the same `versionCode`, treat it as a new binary and bump both version
+boundaries before installation, even when the behavior is intentionally
+unchanged.
+
 ## 3. Automated gates
 
 ```bash
@@ -60,14 +65,27 @@ fallback.
 Run Android from `android/` with JDK 21 and a real SDK path:
 
 ```bash
+npm run build
+npx cap sync android
+cd android
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
 ANDROID_HOME=/home/alex/Android/Sdk \
 ANDROID_SDK_ROOT=/home/alex/Android/Sdk \
 ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleRelease
 ```
 
+Do not run `assembleRelease` against an unsynchronized
+`android/app/src/main/assets/public` tree. A successful native Gradle build can
+otherwise package a stale operator UI even when the Kotlin implementation and
+other APK assets are current.
+
 Require `BUILD SUCCESSFUL`, test XML with zero failures, lint output, APK files,
 and release metadata. Gradle progress or `UP-TO-DATE` lines are not completion.
+
+Before the installable APK is built, review and push a source checkpoint with
+no APKs, signing material, or secrets. Rebuild from that commit and record both
+the source commit and final APK SHA-256. Phone evidence may be recorded in a
+follow-up documentation commit after the exact binary is installed.
 
 ## 4. Verify the signed APK
 
@@ -128,7 +146,41 @@ adb -s SERIAL shell dumpsys media.camera | grep -A4 "Active Camera Clients"
 The service must start from `ua.alexsnig.exhibitmotion.action.AUTO_START`.
 `action.START` proves only manual arming.
 
-## 6. Physical operator acceptance
+## 6. Commission a fresh phone
+
+Do not reuse the update assumptions for a new phone. Follow
+`docs/DEVICE_OWNER_KIOSK.md` and use one explicit serial for every command.
+
+Before installation, prove:
+
+```bash
+adb -s SERIAL shell pm list users
+adb -s SERIAL shell dumpsys account | grep -m1 "Accounts:"
+adb -s SERIAL shell dumpsys device_policy | grep "Device Owner Type"
+adb -s SERIAL shell pm list packages | \
+  grep -E "ua.alexsnig.exhibitmotion|com.guidemuseum"
+```
+
+Continue only with user 0 alone, zero accounts, no Device Owner, and no
+conflicting museum package. A factory reset remains a separate destructive
+action and needs explicit approval if these guards fail.
+
+Install the exact committed artifact, verify the installed `base.apk` hash,
+then provision the permanent admin component:
+
+```bash
+adb -s SERIAL install -r android/app/build/outputs/apk/release/app-release.apk
+adb -s SERIAL shell dpm set-device-owner \
+  ua.alexsnig.exhibitmotion/.kiosk.ExhibitDeviceAdminReceiver
+```
+
+Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.17
+shows this whenever either HOME or Lock Task policy is missing; do not apply the
+obsolete stock-launcher workaround from earlier releases. Then verify Device
+Owner type `0`, Lock Task policy, permissions, persistent HOME, and disabled OTA
+packages before the operator wizard and cold boot.
+
+## 7. Physical operator acceptance
 
 Follow the six native checks in order:
 
@@ -150,7 +202,7 @@ Safety invariants:
 - camera failure must be visible and must never fall back to a simulated feed;
 - detailed exceptions go to Logcat, not the operator screen.
 
-## 7. Burn-in
+## 8. Burn-in
 
 Before exhibition acceptance, run at least eight hours with:
 
@@ -166,7 +218,7 @@ Before exhibition acceptance, run at least eight hours with:
 
 The in-app log keeps only 20 events, so keep an external test tally.
 
-## 8. Client package
+## 9. Client package
 
 Assemble outside Git:
 
@@ -182,7 +234,7 @@ Signing-key material must be in a separate restricted subfolder or a separate
 secure delivery. Never place a key, password, `keystore.properties`, APK, or
 client package in Git.
 
-## 9. Retention and cleanup
+## 10. Retention and cleanup
 
 Keep:
 
@@ -202,7 +254,7 @@ Remove:
 Never delete the only signing key, approved audio master, or latest accepted
 APK. Use Git history or recoverable trash for cleanup when possible.
 
-## 10. Git publication
+## 11. Git publication
 
 ```bash
 git status --short

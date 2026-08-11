@@ -30,9 +30,38 @@ class MotionMathTest {
     }
 
     @Test
-    fun calibrationUsesBoundedNinetyFifthPercentile() {
+    fun classifiesNearFarCandidatesSeparatelyFromGlobalFrameChanges() {
+        assertEquals(
+            MotionSampleClassification.BELOW_THRESHOLD,
+            MotionMath.classify(1.49, 1.5, 70.0),
+        )
+        assertEquals(
+            MotionSampleClassification.CANDIDATE,
+            MotionMath.classify(1.5, 1.5, 70.0),
+        )
+        assertEquals(
+            MotionSampleClassification.CANDIDATE,
+            MotionMath.classify(69.99, 1.5, 70.0),
+        )
+        assertEquals(
+            MotionSampleClassification.GLOBAL_CHANGE,
+            MotionMath.classify(70.0, 1.5, 70.0),
+        )
+    }
+
+    @Test
+    fun calibrationUsesRobustBackgroundNoiseAndIgnoresMovementOutliers() {
         assertEquals(0.5, MotionMath.calibratedThreshold(emptyList()), 0.0)
-        assertEquals(2.5, MotionMath.calibratedThreshold(listOf(0.1, 0.2, 0.3, 0.4, 2.0)), 0.0)
-        assertEquals(25.0, MotionMath.calibratedThreshold(listOf(100.0)), 0.0)
+        assertEquals(
+            1.4,
+            MotionMath.calibratedThreshold(listOf(0.1, 0.2, 0.2, 0.3, 0.3, 0.3, 0.4, 0.4, 30.0, 80.0)),
+            0.0,
+        )
+        assertEquals(
+            3.0,
+            MotionMath.calibratedThreshold(listOf(1.0, 1.2, 1.3, 1.5, 1.7)),
+            0.0,
+        )
+        assertEquals(10.0, MotionMath.calibratedThreshold(List(10) { 100.0 }), 0.0)
     }
 }

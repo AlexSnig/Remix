@@ -47,7 +47,7 @@ export function normalizeSettings(raw: unknown): DetectorSettings {
     ...value,
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     sensitivity: clamp(value.sensitivity, DEFAULT_SETTINGS.sensitivity, 1, 100),
-    noiseThreshold: clamp(value.noiseThreshold, DEFAULT_SETTINGS.noiseThreshold, 0.1, 25),
+    noiseThreshold: clamp(value.noiseThreshold, DEFAULT_SETTINGS.noiseThreshold, 0.1, 10),
     coolDownDelay: clamp(value.coolDownDelay, DEFAULT_SETTINGS.coolDownDelay, 2, 300),
     audioVolume: clamp(value.audioVolume, DEFAULT_SETTINGS.audioVolume, 0, 100),
     maxCacheLogsCount: Math.round(clamp(value.maxCacheLogsCount, DEFAULT_SETTINGS.maxCacheLogsCount, 5, 100)),
@@ -66,6 +66,6 @@ export function normalizeSettings(raw: unknown): DetectorSettings {
     },
     calibratedNoiseFloor: value.calibratedNoiseFloor == null
       ? null
-      : clamp(value.calibratedNoiseFloor, 0, 0, 25),
+      : clamp(value.calibratedNoiseFloor, 0, 0, 10),
   };
 }

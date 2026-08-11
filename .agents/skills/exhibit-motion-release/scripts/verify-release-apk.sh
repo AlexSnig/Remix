@@ -15,12 +15,23 @@ if [[ ! -f "$apk" ]]; then
   exit 66
 fi
 
-for command_name in unzip sha256sum grep awk sort; do
+for command_name in unzip sha256sum grep awk sort find node; do
   command -v "$command_name" >/dev/null || {
     echo "Missing command: $command_name" >&2
     exit 69
   }
 done
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+expected_version_name="${EXPECTED_VERSION_NAME:-$(node -e 'console.log(require(process.argv[1]).version)' "$repo_root/package.json")}"
+expected_version_code="${EXPECTED_VERSION_CODE:-$(
+  awk '/^[[:space:]]*versionCode[[:space:]]+[0-9]+/ {print $2; exit}' \
+    "$repo_root/android/app/build.gradle"
+)}"
+if [[ -z "$expected_version_name" || -z "$expected_version_code" ]]; then
+  echo "Could not resolve expected web and Android versions from source." >&2
+  exit 69
+fi
 
 sdk_candidates=()
 [[ -n "${ANDROID_HOME:-}" ]] && sdk_candidates+=("$ANDROID_HOME")
@@ -79,6 +90,19 @@ if [[ "$package_name" != "$EXPECTED_PACKAGE" ]]; then
   exit 1
 fi
 
+version_code="$(
+  printf '%s\n' "$badging" \
+    | awk -F"'" '/^package:/ {for (i=1; i<=NF; i++) if ($(i-1) ~ /versionCode=$/) {print $i; exit}}'
+)"
+version_name="$(
+  printf '%s\n' "$badging" \
+    | awk -F"'" '/^package:/ {for (i=1; i<=NF; i++) if ($(i-1) ~ /versionName=$/) {print $i; exit}}'
+)"
+if [[ "$version_code" != "$expected_version_code" || "$version_name" != "$expected_version_name" ]]; then
+  echo "APK version $version_name/code $version_code does not match source $expected_version_name/code $expected_version_code." >&2
+  exit 1
+fi
+
 if printf '%s\n' "$badging" | grep -q '^application-debuggable'; then
   echo "Release APK is debuggable." >&2
   exit 1
@@ -90,8 +114,31 @@ if printf '%s\n' "$permissions" | grep -q "android.permission.INTERNET"; then
   exit 1
 fi
 
-unzip -qq "$apk" 'classes*.dex' -d "$tmp_dir"
 shopt -s nullglob
+unzip -qq "$apk" 'assets/public/assets/*.js' -d "$tmp_dir"
+web_bundles=("$tmp_dir"/assets/public/assets/*.js)
+if [[ ${#web_bundles[@]} -eq 0 ]]; then
+  echo "Packaged Capacitor WebView bundle is missing." >&2
+  exit 1
+fi
+if ! grep -a -q 'getAudioLibrary' "${web_bundles[@]}"; then
+  echo "Packaged WebView bundle is stale: audio catalog API is missing." >&2
+  exit 1
+fi
+
+audio_source_dir="$repo_root/audio"
+if [[ -d "$audio_source_dir" ]]; then
+  archive_entries="$(unzip -Z1 "$apk")"
+  while IFS= read -r -d '' source_audio; do
+    packaged_audio="assets/${source_audio##*/}"
+    if ! grep -F -x -q "$packaged_audio" <<<"$archive_entries"; then
+      echo "Bundled audio is missing from APK: ${source_audio##*/}" >&2
+      exit 1
+    fi
+  done < <(find "$audio_source_dir" -maxdepth 1 -type f -print0)
+fi
+
+unzip -qq "$apk" 'classes*.dex' -d "$tmp_dir"
 dex_files=("$tmp_dir"/classes*.dex)
 if [[ ${#dex_files[@]} -eq 0 ]]; then
   echo "No DEX files found in APK." >&2

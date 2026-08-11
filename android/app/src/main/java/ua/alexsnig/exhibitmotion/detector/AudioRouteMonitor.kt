@@ -52,22 +52,22 @@ class AudioRouteMonitor(
         val aux = outputs.firstOrNull { it.isAuxOutput() }
         if (aux != null) return aux.toRoute(AudioRouteKind.AUX)
 
-        val bluetooth = outputs.filter { it.isBluetoothOutput() }
+        val bluetooth = outputs.map { output ->
+            BluetoothAudioCandidate(
+                deviceId = output.id,
+                name = output.productName?.toString(),
+                deviceType = output.type,
+            )
+        }
         // Device IDs are transient across reboots. Once an operator has
         // approved a Bluetooth device, never silently fall back to another
         // paired speaker with the same output type.
-        val preferredByName = preferredBluetoothDeviceName?.takeIf { it.isNotBlank() }?.let { name ->
-            bluetooth.firstOrNull { it.productName?.toString() == name }
-        }
-        val preferred = preferredBluetoothDeviceId?.let { id -> bluetooth.firstOrNull { it.id == id } }
-        val selected = if (!preferredBluetoothDeviceName.isNullOrBlank()) {
-            // Once a stable BT name was approved, even a reused numeric device
-            // ID must not select a different output after reboot.
-            preferredByName
-        } else {
-            preferred ?: bluetooth.firstOrNull()
-        }
-        return selected?.toRoute(AudioRouteKind.BLUETOOTH)
+        val selected = AudioRouteSelectionPolicy.selectBluetoothMediaOutput(
+            candidates = bluetooth,
+            preferredDeviceId = preferredBluetoothDeviceId,
+            preferredDeviceName = preferredBluetoothDeviceName,
+        )
+        return selected?.let { AudioRoute(AudioRouteKind.BLUETOOTH, it.deviceId, it.name) }
             ?: AudioRoute.unavailable()
     }
 
@@ -76,11 +76,6 @@ class AudioRouteMonitor(
     private fun AudioDeviceInfo.isAuxOutput(): Boolean = type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
         type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
         type == AudioDeviceInfo.TYPE_USB_HEADSET
-
-    private fun AudioDeviceInfo.isBluetoothOutput(): Boolean = type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-        type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-        type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
-        type == AudioDeviceInfo.TYPE_BLE_SPEAKER
 
     private fun AudioDeviceInfo.toRoute(kind: AudioRouteKind) = AudioRoute(kind, id, productName?.toString())
 }

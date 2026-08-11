@@ -37,7 +37,7 @@ describe('normalizeSettings', () => {
     });
     expect(result.requiredConsecutiveFrames).toBe(5);
     expect(result.globalChangeCeiling).toBe(30);
-    expect(result.calibratedNoiseFloor).toBe(25);
+    expect(result.calibratedNoiseFloor).toBe(10);
     expect(result.maxCacheLogsCount).toBe(12);
     expect(result.detectionZone).toEqual({x: 0, y: 0.9, width: 0.1, height: 0.1});
     expect(result.cameraFacingMode).toBe('user');

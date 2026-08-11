@@ -32,15 +32,18 @@ object MotionNotifications {
         ))
     }
 
-    fun service(context: Context, snapshot: DetectorSnapshot): Notification = NotificationCompat.Builder(context, SERVICE_CHANNEL)
-        .setSmallIcon(R.drawable.ic_launcher_foreground)
-        .setContentTitle(if (snapshot.status == DetectorStatus.AUDIO_ROUTE_LOST) "Звук недоступний" else "Датчик активний")
-        .setContentText(snapshot.message)
-        .setContentIntent(openAppIntent(context))
-        .setOngoing(true)
-        .setCategory(NotificationCompat.CATEGORY_SERVICE)
-        .setPriority(NotificationCompat.PRIORITY_LOW)
-        .build()
+    fun service(context: Context, snapshot: DetectorSnapshot): Notification {
+        val content = DetectorRuntimePolicy.notificationKey(snapshot)
+        return NotificationCompat.Builder(context, SERVICE_CHANNEL)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(content.title)
+            .setContentText(content.message)
+            .setContentIntent(openAppIntent(context))
+            .setOngoing(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
 
     fun rebootReminder(
         context: Context,

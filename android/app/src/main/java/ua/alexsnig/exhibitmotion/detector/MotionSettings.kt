@@ -59,7 +59,7 @@ data class MotionSettings(
             val y = clamp(zone.optDouble("y", 0.0), 0.0, 0.9)
             return MotionSettings(
                 sensitivity = clamp(source.optDouble("sensitivity", 70.0), 1.0, 100.0),
-                noiseThreshold = clamp(source.optDouble("noiseThreshold", 1.5), 0.1, 25.0),
+                noiseThreshold = clamp(source.optDouble("noiseThreshold", 1.5), 0.1, 10.0),
                 coolDownDelaySeconds = round(clamp(source.optDouble("coolDownDelay", 6.0), 2.0, 300.0)).toInt(),
                 customAudioId = nullableString(source, "customAudioId"),
                 audioVolume = round(clamp(source.optDouble("audioVolume", 100.0), 0.0, 100.0)).toInt(),
@@ -75,7 +75,7 @@ data class MotionSettings(
                 calibratedNoiseFloor = source.takeIf { !it.isNull("calibratedNoiseFloor") }
                     ?.optDouble("calibratedNoiseFloor")
                     ?.takeIf { it.isFinite() }
-                    ?.let { clamp(it, 0.0, 25.0) },
+                    ?.let { clamp(it, 0.0, 10.0) },
                 preferredBluetoothDeviceId = source.takeIf { it.has("preferredBluetoothDeviceId") }
                     ?.optInt("preferredBluetoothDeviceId")
                     ?.takeIf { it > 0 },

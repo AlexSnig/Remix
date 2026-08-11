@@ -1,12 +1,22 @@
 import { chromium } from 'playwright';
+import { existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const htmlPath = path.join(scriptDir, 'exhibit-motion-staff-manual.html');
 const outputPath = path.join(scriptDir, 'ExhibitMotion_інструкція_для_персоналу.pdf');
-const executablePath = process.env.EXHIBIT_CHROMIUM_PATH
-  ?? '/snap/chromium/3483/usr/lib/chromium-browser/chrome';
+const executablePath = [
+  process.env.EXHIBIT_CHROMIUM_PATH,
+  '/snap/chromium/current/usr/lib/chromium-browser/chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  chromium.executablePath(),
+].find(candidate => candidate && existsSync(candidate));
+
+if (!executablePath) {
+  throw new Error('Chromium executable not found; set EXHIBIT_CHROMIUM_PATH.');
+}
 
 const browser = await chromium.launch({
   executablePath,

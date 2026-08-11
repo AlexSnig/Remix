@@ -90,6 +90,9 @@ class MotionDetectorService : LifecycleService() {
     private var cameraRecoveryAttempts = 0
     @Volatile private var cameraBoundAtElapsedMs = 0L
     @Volatile private var lastFrameAtElapsedMs = 0L
+    @Volatile private var lastMotionLogAtElapsedMs = 0L
+    @Volatile private var lastUiTelemetryAtElapsedMs = 0L
+    private var lastNotificationKey: ServiceNotificationKey? = null
     private val startedAtElapsedMs = SystemClock.elapsedRealtime()
 
     override fun onCreate() {
@@ -123,7 +126,14 @@ class MotionDetectorService : LifecycleService() {
             ACTION_TEST_AUDIO -> playRouteTest()
             ACTION_CONFIRM_AUDIO -> confirmRouteTest()
             ACTION_CANCEL_AUDIO -> cancelRouteTest()
-            ACTION_CALIBRATE -> startCalibration()
+            ACTION_CALIBRATE -> {
+                val status = DetectorRuntime.current().status
+                if (DetectorRuntimePolicy.canStartCalibration(status)) {
+                    startCalibration()
+                } else {
+                    Log.w(TAG, "Ignoring calibration while detector is ${status.wireValue}")
+                }
+            }
         }
         return Service.START_NOT_STICKY
     }
@@ -169,6 +179,11 @@ class MotionDetectorService : LifecycleService() {
     }
 
     private fun startArmedRun() {
+        val currentStatus = DetectorRuntime.current().status
+        if (DetectorRuntimePolicy.isRunning(currentStatus)) {
+            Log.i(TAG, "Ignoring duplicate start while detector is ${currentStatus.wireValue}")
+            return
+        }
         serviceScope.launch {
             settings = store.loadSettings()
             val route = awaitApprovedBluetoothRoute()
@@ -213,7 +228,12 @@ class MotionDetectorService : LifecycleService() {
                 isCalibrating = false
                 withContext(Dispatchers.Main.immediate) {
                     stopCamera()
-                    transition(DetectorStatus.IDLE, "Калібрування завершено: ${"%.1f".format(threshold)}%", route)
+                    transition(
+                        DetectorStatus.IDLE,
+                        "Калібрування завершено: ${"%.1f".format(threshold)}%. " +
+                            "Датчик вимкнений — виконайте тест руху або натисніть «Увімкнути датчик»",
+                        route,
+                    )
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -258,7 +278,7 @@ class MotionDetectorService : LifecycleService() {
         completeRouteTest(resolveRoute())
     }
 
-    /** Shared by operator confirmation and by a file that played to its end. */
+    /** Only explicit operator confirmation may approve an audible route. */
     private fun completeRouteTest(route: AudioRoute) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             playerScope.launch { completeRouteTest(route) }
@@ -357,6 +377,7 @@ class MotionDetectorService : LifecycleService() {
                 analyzedFrameCount = 0L
                 lastFrameAtMs = 0L
                 lastFrameAtElapsedMs = 0L
+                lastUiTelemetryAtElapsedMs = 0L
                 cameraBoundAtElapsedMs = SystemClock.elapsedRealtime()
                 consecutiveFrames = 0
                 motionTriggeredInCurrentRun = false
@@ -384,6 +405,7 @@ class MotionDetectorService : LifecycleService() {
                 previousFrame = current
                 cameraRecoveryAttempts = 0
                 if (!isCalibrating && DetectorRuntime.current().status == DetectorStatus.STARTING) {
+                    lastUiTelemetryAtElapsedMs = now
                     transition(
                         DetectorStatus.ARMED,
                         "Датчик активний",
@@ -410,20 +432,38 @@ class MotionDetectorService : LifecycleService() {
 
             val snapshot = DetectorRuntime.current()
             if (snapshot.status != DetectorStatus.ARMED) return
-            if (analysis.percentageChanged >= settings.noiseThreshold &&
-                analysis.percentageChanged < settings.globalChangeCeiling
-            ) {
+            val classification = MotionMath.classify(
+                analysis.percentageChanged,
+                settings.noiseThreshold,
+                settings.globalChangeCeiling,
+            )
+            if (classification == MotionSampleClassification.CANDIDATE) {
                 consecutiveFrames += 1
             } else {
                 consecutiveFrames = 0
             }
 
-            transition(
-                DetectorStatus.ARMED,
-                "Датчик активний",
-                resolveRoute(),
-                motionPercent = analysis.percentageChanged,
-            )
+            if (now - lastMotionLogAtElapsedMs >= MOTION_LOG_INTERVAL_MS) {
+                lastMotionLogAtElapsedMs = now
+                Log.d(
+                    TAG,
+                    "Motion sample=${"%.2f".format(analysis.percentageChanged)}% " +
+                        "threshold=${"%.2f".format(settings.noiseThreshold)}% " +
+                        "ceiling=${"%.2f".format(settings.globalChangeCeiling)}% " +
+                        "classification=${classification.wireValue} " +
+                        "consecutive=$consecutiveFrames/${settings.requiredConsecutiveFrames}",
+                )
+            }
+
+            if (DetectorRuntimePolicy.shouldPublishTelemetry(now, lastUiTelemetryAtElapsedMs)) {
+                lastUiTelemetryAtElapsedMs = now
+                transition(
+                    DetectorStatus.ARMED,
+                    "Датчик активний",
+                    resolveRoute(),
+                    motionPercent = analysis.percentageChanged,
+                )
+            }
             if (MotionMath.shouldTrigger(
                     analysis.percentageChanged,
                     settings.noiseThreshold,
@@ -476,6 +516,10 @@ class MotionDetectorService : LifecycleService() {
             fail("Локальний аудіофайл відсутній")
             return
         }
+        val volumeResult = AudioOutputVolume.apply(this, settings.audioVolume, route)
+        if (volumeResult.isFailure) {
+            Log.e(TAG, "Could not apply system media volume", volumeResult.exceptionOrNull())
+        }
         player?.release()
         player = ExoPlayer.Builder(this).build().also { exo ->
             exo.setAudioAttributes(
@@ -489,9 +533,17 @@ class MotionDetectorService : LifecycleService() {
                 getSystemService(android.media.AudioManager::class.java)
                     .getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
                     .firstOrNull { it.id == deviceId }
-                    ?.let(exo::setPreferredAudioDevice)
+                    ?.let { device ->
+                        Log.i(
+                            TAG,
+                            "Pinning narration to output id=${device.id} type=${device.type} " +
+                                "name=${device.productName}",
+                        )
+                        exo.setPreferredAudioDevice(device)
+                    }
             }
             exo.volume = settings.audioVolume / 100f
+            exo.repeatMode = if (isTestingAudio) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             exo.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_ENDED) onPlaybackFinished(route)
@@ -513,12 +565,15 @@ class MotionDetectorService : LifecycleService() {
             playerScope.launch { onPlaybackFinished(route) }
             return
         }
-        player?.release()
-        player = null
         if (isTestingAudio) {
-            completeRouteTest(route)
+            // File completion is never evidence that the operator heard sound.
+            player?.seekToDefaultPosition()
+            player?.play()
             return
         }
+        player?.release()
+        player = null
+        Log.i(TAG, "Playback finished; detector will re-arm after cooldown")
         cooldownJob?.cancel()
         cooldownJob = serviceScope.launch {
             val seconds = max(2, settings.coolDownDelaySeconds)
@@ -532,6 +587,7 @@ class MotionDetectorService : LifecycleService() {
                 audioRouteLost("Аудіомаршрут втрачено під час паузи")
             } else {
                 transition(DetectorStatus.ARMED, "Датчик активний", currentRoute)
+                Log.i(TAG, "Cooldown finished; detector automatically re-armed")
             }
         }
     }
@@ -715,7 +771,12 @@ class MotionDetectorService : LifecycleService() {
         )
         DetectorRuntime.update(snapshot)
         applyWakeLock(status)
-        if (status != DetectorStatus.IDLE) {
+        if (status == DetectorStatus.IDLE) {
+            lastNotificationKey = null
+        } else {
+            val notificationKey = DetectorRuntimePolicy.notificationKey(snapshot)
+            if (notificationKey == lastNotificationKey) return
+            lastNotificationKey = notificationKey
             getSystemService(android.app.NotificationManager::class.java)
                 .notify(MotionNotifications.SERVICE_NOTIFICATION_ID, MotionNotifications.service(this, snapshot))
         }
@@ -842,6 +903,7 @@ class MotionDetectorService : LifecycleService() {
         private const val ANALYSIS_WIDTH = 36
         private const val ANALYSIS_HEIGHT = 48
         private const val FRAME_INTERVAL_MS = 100L
+        private const val MOTION_LOG_INTERVAL_MS = 1_000L
         private const val CALIBRATION_DURATION_MS = 10_000L
         private const val CAMERA_RECOVERY_DELAY_MS = 1_500L
         private const val CAMERA_WATCHDOG_INTERVAL_MS = 3_000L
@@ -849,12 +911,13 @@ class MotionDetectorService : LifecycleService() {
         private const val CAMERA_RECOVERY_MAX_DELAY_MS = 30_000L
         private const val MAX_EVENTS = 20
         private val CAMERA_ACTIONS = setOf(ACTION_START, ACTION_AUTO_START, ACTION_CALIBRATE)
-
         @Volatile private var activeInstance: MotionDetectorService? = null
 
         fun command(context: Context, action: String) {
             ContextCompat.startForegroundService(context, Intent(context, MotionDetectorService::class.java).setAction(action))
         }
+
+        fun isServiceRunning(): Boolean = activeInstance != null
 
         /** Only an actual native trigger during the current camera run may
          * certify the operator's motion test. */
@@ -876,6 +939,7 @@ class MotionDetectorService : LifecycleService() {
                 if (activeInstance !== service) return@launch
                 service.settings = updated
                 service.player?.volume = updated.audioVolume / 100f
+                AudioOutputVolume.apply(service, updated.audioVolume, service.resolveRoute())
             }
         }
     }

@@ -37,6 +37,12 @@ export interface ImportedNativeAudio {
   mimeType: string;
 }
 
+export interface BundledNativeAudio {
+  assetName: string;
+  name: string;
+  mimeType: string;
+}
+
 export interface NativeDiagnostics {
   versionName: string;
   versionCode: number;
@@ -122,9 +128,12 @@ interface MotionDetectorPlugin {
   requestCameraPermission(): Promise<{ granted: boolean } | NativeDetectorSnapshot>;
   saveSettings(options: { settings: DetectorSettings }): Promise<void>;
   importAudio(): Promise<ImportedNativeAudio>;
+  getAudioLibrary(): Promise<{ items: BundledNativeAudio[] }>;
+  selectBundledAudio(options: { assetName: string }): Promise<ImportedNativeAudio>;
   playTest(): Promise<NativeDetectorSnapshot>;
   confirmAudioRoute(): Promise<NativeDetectorSnapshot>;
   cancelAudioTest(): Promise<NativeDetectorSnapshot>;
+  openBluetoothSettings(): Promise<void>;
   calibrate(): Promise<NativeDetectorSnapshot>;
   finishMotionTest(): Promise<void>;
   getAudioRoute(): Promise<NativeAudioRoute>;

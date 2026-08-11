@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
+import android.provider.Settings
 import androidx.activity.result.ActivityResult
 import androidx.core.content.FileProvider
 import com.getcapacitor.JSObject
@@ -172,6 +173,51 @@ class MotionDetectorPlugin : Plugin() {
         }
     }
 
+    @PluginMethod
+    fun getAudioLibrary(call: PluginCall) {
+        pluginScope.launch {
+            call.resolve(JSObject().apply { put("items", bundledAudioData()) })
+        }
+    }
+
+    /** Copies a catalog item from packaged assets into private storage and
+     * makes it the active narration. Bytes never cross the WebView bridge. */
+    @PluginMethod
+    fun selectBundledAudio(call: PluginCall) {
+        val assetName = call.getString("assetName")
+        if (assetName.isNullOrBlank() || !isSafeAudioAssetName(assetName)) {
+            call.reject("Invalid audio catalog item", "INVALID_AUDIO")
+            return
+        }
+        pluginScope.launch {
+            try {
+                val assets = context.assets.list("")?.toSet().orEmpty()
+                if (assetName !in assets) {
+                    call.reject("Audio catalog item is missing", "AUDIO_NOT_FOUND")
+                    return@launch
+                }
+                val extension = assetName.substringAfterLast('.', "").lowercase()
+                val id = "catalog_${assetName.hashCode().toUInt().toString(16)}.$extension"
+                val directory = File(context.filesDir, "audio").apply { mkdirs() }
+                val destination = File(directory, id)
+                context.assets.open(assetName).use { input -> FileOutputStream(destination).use { input.copyTo(it) } }
+                validateAudio(destination)
+                val imported = ImportedAudio(id, assetName, context.contentResolver.getType(android.net.Uri.parse("file://$assetName")) ?: "audio/mpeg")
+                val store = DetectorStore.get(context)
+                store.saveImportedAudio(imported)
+                store.saveSettings(store.loadSettings().copy(customAudioId = id))
+                store.clearVerifiedAudioRoute()
+                store.clearMotionTestPassed()
+                directory.listFiles()?.filter { it.isFile && it.name != id }?.forEach(File::delete)
+                call.resolve(JSObject().apply { put("id", id); put("name", assetName); put("mimeType", imported.mimeType) })
+            } catch (error: InvalidAudioException) {
+                call.reject(error.message ?: "Unsupported audio", "INVALID_AUDIO", error)
+            } catch (error: Exception) {
+                call.reject(error.message ?: "Could not select catalog audio", "IMPORT_FAILED", error)
+            }
+        }
+    }
+
     /** Restores only operator metadata. Imported audio bytes stay private to
      * the app and never pass through the WebView bridge. */
     @PluginMethod
@@ -214,6 +260,21 @@ class MotionDetectorPlugin : Plugin() {
             val incoming = JSONObject(raw.toString())
             incoming.keys().forEach { key -> merged.put(key, incoming.get(key)) }
             val saved = MotionSettings.fromJson(merged.toString())
+            val route = AudioRouteMonitor(context) {}.resolve(
+                saved.preferredBluetoothDeviceId,
+                saved.preferredBluetoothDeviceName,
+            )
+            if (route.kind != AudioRouteKind.UNAVAILABLE) {
+                val volumeResult = AudioOutputVolume.apply(context, saved.audioVolume, route)
+                if (volumeResult.isFailure) {
+                    val cause = volumeResult.exceptionOrNull()
+                    call.reject(
+                        cause?.message ?: "Could not apply Android media volume",
+                        "AUDIO_VOLUME_FAILED",
+                    )
+                    return@launch
+                }
+            }
             store.saveSettingsFromOperator(saved)
             MotionDetectorService.applyActiveSettings(saved)
             call.resolve()
@@ -303,8 +364,44 @@ class MotionDetectorPlugin : Plugin() {
         call.resolve(statusData(DetectorRuntime.current()))
     }
 
+    /** Pairing stays in Android's trusted Bluetooth UI. The app never scans for,
+     * stores, or silently pairs arbitrary devices. */
     @PluginMethod
-    fun calibrate(call: PluginCall) = runWithCameraPermission(call, MotionDetectorService.ACTION_CALIBRATE)
+    fun openBluetoothSettings(call: PluginCall) {
+        pluginScope.launch {
+            val kiosk = KioskPolicyController.state(context)
+            if (kiosk.isDeviceOwner && !kiosk.maintenanceMode) {
+                call.reject(
+                    "Спочатку відкрийте операторський режим",
+                    "MAINTENANCE_MODE_REQUIRED",
+                )
+                return@launch
+            }
+            val opened = withContext(Dispatchers.Main.immediate) {
+                val host = activity ?: return@withContext false
+                if (kiosk.isLockTaskActive) KioskPolicyController.exitLockTask(host)
+                runCatching {
+                    host.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                    true
+                }.getOrDefault(false)
+            }
+            if (!opened) {
+                call.reject("Не вдалося відкрити налаштування Bluetooth", "BLUETOOTH_SETTINGS_FAILED")
+                return@launch
+            }
+            call.resolve()
+        }
+    }
+
+    @PluginMethod
+    fun calibrate(call: PluginCall) {
+        val status = DetectorRuntime.current().status
+        if (!DetectorRuntimePolicy.canStartCalibration(status)) {
+            call.reject("Stop the detector before calibration", "DETECTOR_RUNNING")
+            return
+        }
+        runWithCameraPermission(call, MotionDetectorService.ACTION_CALIBRATE)
+    }
 
     @PluginMethod
     fun finishMotionTest(call: PluginCall) {
@@ -447,15 +544,11 @@ class MotionDetectorPlugin : Plugin() {
                 return@launch
             }
             store.setMaintenanceMode(false)
-            val readiness = KioskPolicyController.state(context)
-            if (readiness.autoStartAfterRebootEnabled && !readiness.autoStartReady) {
-                store.setMaintenanceMode(true)
-                call.reject(
-                    "Не можна повернути kiosk: ${readiness.blockers.joinToString(", ")}",
-                    "AUTOSTART_NOT_READY",
-                )
-                return@launch
-            }
+            // Closing operator maintenance and completing detector readiness
+            // are separate concerns. Lock Task must be restorable even when a
+            // motion test, route check, or calibration still needs attention;
+            // those blockers remain visible and continue to prevent detector
+            // auto-start, but must not trap the operator outside kiosk.
             val locked = withContext(Dispatchers.Main.immediate) {
                 activity?.let(KioskPolicyController::enterLockTask) ?: false
             }
@@ -531,6 +624,22 @@ class MotionDetectorPlugin : Plugin() {
         put("updatedAtMs", snapshot.updatedAtMs)
         put("audioRoute", routeData(snapshot.audioRoute))
     }
+
+    private fun bundledAudioData(): JSONArray = JSONArray().apply {
+        context.assets.list("").orEmpty()
+            .filter { isSafeAudioAssetName(it) }
+            .sortedBy { it.lowercase() }
+            .forEach { name ->
+                put(JSObject().apply {
+                    put("assetName", name)
+                    put("name", name)
+                    put("mimeType", "audio/mpeg")
+                })
+            }
+    }
+
+    private fun isSafeAudioAssetName(name: String): Boolean =
+        !name.contains('/') && name.matches(Regex("(?i).+\\.(mp3|m4a|wav|aac|ogg)"))
 
     private fun eventData(event: MotionEventEntity): JSObject = JSObject().apply {
         put("id", event.id)

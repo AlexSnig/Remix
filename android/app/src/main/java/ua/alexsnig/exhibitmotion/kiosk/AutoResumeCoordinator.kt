@@ -9,6 +9,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ua.alexsnig.exhibitmotion.detector.DetectorStore
+import ua.alexsnig.exhibitmotion.detector.DetectorRuntimePolicy
 import ua.alexsnig.exhibitmotion.detector.MotionDetectorService
 
 /**
@@ -51,7 +52,12 @@ object AutoResumeCoordinator {
             }
 
             val bootCount = currentBootCount(context)
-            if (!store.claimAutoStartForBoot(bootCount)) return@launch
+            val bootClaimed = store.claimAutoStartForBoot(bootCount)
+            if (!DetectorRuntimePolicy.shouldStartAutoResume(
+                    bootClaimed = bootClaimed,
+                    detectorServiceRunning = MotionDetectorService.isServiceRunning(),
+                )
+            ) return@launch
 
             val runtime = KioskPolicyController.state(context)
             // A route mismatch/unavailable output is handled by the service

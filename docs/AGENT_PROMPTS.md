@@ -43,11 +43,14 @@ the prompt to an agent that can access this repository.
 ## Commission a new phone
 
 > Use `$exhibit-motion-release` and follow `docs/DEVICE_OWNER_KIOSK.md`
-> literally. First confirm the phone can be factory-reset and that the user has
-> authorized this destructive step. Remove accounts before reset, provision
-> Device Owner, apply Home and Lock Task policy, complete all six native checks,
-> set the operator PIN, and prove five cold boots. Record exact evidence and
-> correct the runbook in the same session if hardware behavior differs.
+> literally. Resolve the serial and first prove one owner user, zero accounts,
+> no Device Owner, and no conflicting museum package. If those guards already
+> pass, do not factory-reset; a reset is a separate destructive action requiring
+> explicit approval. Install the exact committed APK, verify the installed
+> `base.apk` hash, provision Device Owner, apply Home and Lock Task policy,
+> complete all six native checks, set the operator PIN locally, and prove five
+> cold boots. Record exact evidence and correct the runbook in the same session
+> if hardware behavior differs.
 
 ## Prepare client handoff
 
