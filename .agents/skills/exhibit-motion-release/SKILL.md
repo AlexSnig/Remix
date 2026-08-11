@@ -66,6 +66,30 @@ sequentially. Keep fresh-phone commissioning separate from an in-place update:
   Factory reset remains a separate destructive approval.
 - Commissioned phone: use `adb install -r`; never uninstall or clear data.
 
+For this project the user granted standing authorization to run the guarded
+museum-phone lane without repeated questions. When they connect the dedicated
+phone and ask for everything/kiosk, use:
+
+```bash
+bash .agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh
+```
+
+The script selects the only authorized physical `SM-A075F`, derives the exact
+current handoff APK from the source version, verifies the signed artifact,
+classifies fresh versus commissioned state, installs with `-r`, compares the
+installed `base.apk`, provisions Device Owner when the clean guards pass,
+applies native HOME/Lock Task/fixed-permission policies, disables the documented
+Samsung OTA entry points, reboots once, and verifies the post-boot system kiosk.
+It writes concise evidence under `/tmp`. Use `--preflight-only` for a read-only
+audit and explicit `--serial`/`--apk` only when automatic resolution cannot be
+unambiguous.
+
+Do not ask for repeat permission for those scripted actions when every guard
+passes. A guard failure is a stop condition, not a reason to improvise. The
+standing authority excludes factory reset, account/user/other-owner removal,
+uninstall or data clearing, PIN creation/guessing, narration/lens/route choice,
+human audibility, and burn-in acceptance.
+
 After installation, pull the installed `base.apk` and compare its SHA-256 with
 the verified release artifact. Reboot after the update or completed kiosk
 commissioning. Prove boot resume with `action.AUTO_START`, not a manual

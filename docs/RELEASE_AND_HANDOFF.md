@@ -151,6 +151,20 @@ The service must start from `ua.alexsnig.exhibitmotion.action.AUTO_START`.
 Do not reuse the update assumptions for a new phone. Follow
 `docs/DEVICE_OWNER_KIOSK.md` and use one explicit serial for every command.
 
+For the normal agent-operated lane, the user has already authorized the
+guarded full system commissioning and one required reboot. Run this from the
+repository instead of asking for each safe sub-step:
+
+```bash
+bash .agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh
+```
+
+It also recognizes an existing Exhibit Motion Device Owner and switches to an
+in-place `adb install -r` update. It fails closed on multiple physical phones,
+an emulator, a non-`SM-A075F` model, GuideMuseum, extra users/accounts, a secure
+lock credential, or another Device Owner. Factory reset and destructive repair
+remain outside this standing authorization.
+
 Before installation, prove:
 
 ```bash

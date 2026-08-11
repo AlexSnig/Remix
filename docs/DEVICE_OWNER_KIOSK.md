@@ -63,6 +63,40 @@ only because the screen happened to be on; and USB debugging is not actually
 being turned off. Separately, after a reboot the host adb server may not
 re-detect the phone until `adb kill-server && adb start-server`.
 
+## Preferred agent command
+
+The user has granted standing authorization for the guarded Exhibit Motion
+museum-phone lane, including the exact signed-APK install/update, clean Device
+Owner provisioning, HOME/Lock Task/fixed-permission policy, the documented
+Samsung OTA blocks, and one commissioning reboot. When exactly one dedicated
+phone is connected, run from `/home/alex/Remix`:
+
+```bash
+bash .agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh
+```
+
+No repeated confirmation is required when its guards pass. The script derives
+the current handoff APK from `package.json` and `android/app/build.gradle`, runs
+the full signed-APK verifier, rejects emulators and GuideMuseum, requires the
+physical model `SM-A075F`, one owner user, zero accounts, no secure Android
+credential and no conflicting Device Owner, then chooses fresh commissioning
+or a data-preserving update. It verifies the pulled installed `base.apk`, calls
+the native policy-compliance Activity rather than using screen coordinates,
+checks HOME, Lock Task, fixed permissions and OTA state, reboots, and records a
+serial-scoped summary under `/tmp`.
+
+Use `--preflight-only` only for diagnostics; the default production path does
+the authorized write and reboot. A failed guard must stop with its single
+`BLOCKED:` reason. Never work around it by resetting, deleting an account,
+removing another Device Owner, uninstalling, or clearing app data.
+
+The script finishes the Android **system kiosk**. A fresh phone still requires
+a person at the installation to choose the mounted lens and narration, hear and
+approve the final AUX/Bluetooth route, calibrate, complete a real motion test,
+and set the private operator PIN. Those physical facts cannot be safely
+invented or confirmed through ADB; after they are complete, the next cold boot
+must show `action.AUTO_START`.
+
 ## Verified sequence
 
 ### 1. Install and provision

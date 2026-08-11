@@ -91,6 +91,18 @@ reports zero matches on a perfectly healthy build.
 phone, verified against real hardware. Follow it literally rather than
 improvising, and correct it in the same session whenever a step proves wrong.
 
+The user has granted standing authorization for the dedicated Exhibit Motion
+museum-phone lane. When they connect a phone and ask to install everything or
+put it in kiosk mode, run the guarded one-command commissioning script from the
+repo-local release skill without asking again for install, Device Owner/HOME/
+Lock Task policy, Samsung OTA blocking, or its single required reboot. The
+script must resolve exactly one physical `SM-A075F`, verify the current signed
+APK and all fresh/update guards automatically, reject GuideMuseum/emulators,
+and stop with one concrete blocker when a guard fails. This standing authority
+never covers factory reset, removing accounts/users or another Device Owner,
+uninstalling/clearing app data, inventing the operator PIN, choosing the
+physical lens/narration/route, claiming audible acceptance, or skipping burn-in.
+
 `docs/RELEASE_AND_HANDOFF.md` is the canonical release and client-package
 runbook. Update `docs/PROJECT_STATE.md` in the same change whenever the release,
 target-phone evidence, or remaining physical gates change.

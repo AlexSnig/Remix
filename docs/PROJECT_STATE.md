@@ -61,6 +61,22 @@ Last verified: 2026-08-11
 
 ## Target museum phone
 
+- Standing installation authority: when the user connects a dedicated Exhibit
+  Motion museum phone and asks for everything/kiosk, the agent may run the
+  guarded commissioning lane without repeated install/policy/reboot questions.
+  `bash .agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh`
+  automatically verifies the current signed APK, resolves one physical
+  `SM-A075F`, rejects the GuideMuseum/emulator lane, distinguishes fresh versus
+  commissioned state, preserves data, applies Device Owner/HOME/Lock Task and
+  OTA policy, performs one reboot, and records evidence. Factory reset,
+  destructive repair, PIN, lens/narration/route selection, audible acceptance,
+  and burn-in remain outside that standing authority.
+- The new script's read-only `--preflight-only` path passed on 2026-08-11 for
+  serial `R8YL41DLGLR`: exact 1.3.17/code 22 APK gates passed, the phone was
+  classified `commissioned_update`, and one-user/zero-account/no-credential,
+  product-lane and existing system-kiosk checks passed. No phone state changed
+  during this validation.
+
 - The current installation target is Samsung Galaxy A07 serial `R8YL41DLGLR`
   (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
   zero accounts, no Device Owner, Samsung Launcher as HOME, Lock Task `NONE`,

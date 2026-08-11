@@ -33,6 +33,9 @@ this documentation index.
 - [DEVICE_OWNER_KIOSK.md](DEVICE_OWNER_KIOSK.md) — guarded fresh-phone
   commissioning, Device Owner, Lock Task, operator maintenance, and cold boot;
   factory reset is used only when prerequisites fail and is separately approved.
+- [Guarded museum-phone script](../.agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh)
+  — automatic current-APK audit, fresh/update classification, system kiosk,
+  one reboot, and serial-scoped evidence without repeated operator questions.
 
 ## Museum staff
 
