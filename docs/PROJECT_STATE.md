@@ -24,6 +24,18 @@ Last verified: 2026-08-11
   `bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e`
   (RSA 4096).
 - Runtime has no `android.permission.INTERNET`.
+- Current client handoff:
+  `/home/alex/exhibit-handoff-1.3.17-code22`. It contains exactly the signed
+  APK, current staff PDF, current integrator PDF, and `SHA256SUMS.txt`; no
+  signing material, source, QA evidence, or phone backup is present.
+- `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
+  SHA-256: `3f867a425664d4b0b0c3137ad235b61ce40cd948d282d44cbe6974d8441709e9`;
+  integrator PDF SHA-256:
+  `9f5aade5ac55f54b115d77cafbadc805205b654211500f9ba718cb926f8b577d`.
+- Both delivered PDFs are current 9-page A4 editions dated 2026-08-11. The
+  staff PDF names 1.3.17/code 22 and the exact release filename; the integrator
+  PDF records the artifact hash/certificate, Android 16 commissioning,
+  current serial-scoped evidence, and remaining physical gates.
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
@@ -193,10 +205,7 @@ The current status is **RELEASE CANDIDATE**, not final exhibition acceptance.
    AUX or Bluetooth speaker, then prove playback end, cooldown, and automatic
    re-arm at least twice with the screen off. Verify that the handset speaker
    remains silent.
-4. If a client handoff is requested, place only this exact APK, the staff and
-   technician PDFs, and a matching `SHA256SUMS.txt` in the package. Do not put
-   signing material or engineering evidence in the handoff.
-5. Run the documented 8-hour acceptance test with charging, heat observation,
+4. Run the documented 8-hour acceptance test with charging, heat observation,
    at least 100 triggers, route loss/return, permission recovery, and at least
    five full power cycles.
 

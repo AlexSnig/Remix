@@ -41,6 +41,14 @@ this documentation index.
 - [Staff-manual source](staff-guide/exhibit-motion-staff-manual.html) — editable
   source used to regenerate the PDF.
 
+## Integrator
+
+- [Exhibit Motion integrator PDF](integrator-guide/ExhibitMotion_інструкція_для_інтегратора.pdf)
+  — guarded installation, Device Owner/HOME/Lock Task, OTA, operator wizard,
+  cold boot, update, recovery, and physical acceptance for 1.3.17/code 22.
+- [Integrator-manual source](integrator-guide/exhibit-motion-integrator-manual.html)
+  — editable A4 source used to regenerate the PDF.
+
 ## Assets and secrets
 
 - `assets/audio/+Сходи.MP3` — approved 14-second narration master.

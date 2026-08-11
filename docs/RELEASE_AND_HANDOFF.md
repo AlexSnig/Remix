@@ -220,19 +220,23 @@ The in-app log keeps only 20 events, so keep an external test tally.
 
 ## 9. Client package
 
-Assemble outside Git:
+Assemble outside Git. The default client delivery is exactly four files:
 
 - signed APK named with version and version code;
-- installation instructions;
-- staff PDF;
-- Device Owner/kiosk runbook;
-- release notes;
-- verification report with completed and open gates;
-- SHA-256 manifest.
+- current staff PDF;
+- current integrator PDF, containing installation, Device Owner/kiosk,
+  release identity, verification boundaries, and completed/open gates;
+- `SHA256SUMS.txt` for the three payload files.
 
-Signing-key material must be in a separate restricted subfolder or a separate
-secure delivery. Never place a key, password, `keystore.properties`, APK, or
-client package in Git.
+Do not add source, release notes, QA screenshots, phone backups, build output,
+or engineering evidence to the ordinary client folder. If a contract requires
+an engineering annex, deliver it separately with an explicit audience and
+retention boundary.
+
+Signing-key material must be in a separate restricted location or secure
+delivery, never a subfolder that could be copied with the client handoff.
+Never place a key, password, `keystore.properties`, APK, or client package in
+Git.
 
 ## 10. Retention and cleanup
 

@@ -1,0 +1,41 @@
+import { chromium } from 'playwright';
+import { existsSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import path from 'node:path';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const htmlPath = path.join(scriptDir, 'exhibit-motion-integrator-manual.html');
+const outputPath = path.join(scriptDir, 'ExhibitMotion_інструкція_для_інтегратора.pdf');
+const executablePath = [
+  process.env.EXHIBIT_CHROMIUM_PATH,
+  '/snap/chromium/current/usr/lib/chromium-browser/chrome',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  chromium.executablePath(),
+].find(candidate => candidate && existsSync(candidate));
+
+if (!executablePath) {
+  throw new Error('Chromium executable not found; set EXHIBIT_CHROMIUM_PATH.');
+}
+
+const browser = await chromium.launch({
+  executablePath,
+  headless: true,
+  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+});
+
+try {
+  const page = await browser.newPage({ viewport: { width: 1240, height: 1754 } });
+  await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'load' });
+  await page.emulateMedia({ media: 'print' });
+  await page.pdf({
+    path: outputPath,
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: '0', right: '0', bottom: '0', left: '0' },
+  });
+  console.log(outputPath);
+} finally {
+  await browser.close();
+}
