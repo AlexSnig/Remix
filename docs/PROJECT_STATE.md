@@ -1,6 +1,6 @@
 # Exhibit Motion project state
 
-Last verified: 2026-08-11
+Last verified: 2026-08-12
 
 ## Release
 
@@ -77,7 +77,39 @@ Last verified: 2026-08-11
   product-lane and existing system-kiosk checks passed. No phone state changed
   during this validation.
 
-- The current installation target is Samsung Galaxy A07 serial `R8YL41DLGLR`
+- The current installation target is Samsung Galaxy A07 serial `R8YL41DLHAY`
+  (`SM-A075F`), Android 16 / API 36. On 2026-08-12 the guarded preflight proved
+  exactly one owner user, zero accounts, no secure Android credential, no
+  Device Owner, no GuideMuseum/Exhibit Motion package, and the correct physical
+  product lane. No factory reset was needed or performed.
+- The exact signed 1.3.17/code 22 APK was installed fresh. Its pulled installed
+  `base.apk` is byte-identical to the workstation/client artifact, SHA-256
+  `840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7`;
+  package metadata records both first install and update at
+  `2026-08-12 15:10:13`.
+- `R8YL41DLHAY` is Device Owner type 0. After the authorized commissioning
+  reboot, Exhibit Motion was the top-resumed HOME activity with Lock Task
+  `LOCKED`; Camera, Notifications and Bluetooth permissions were granted with
+  `POLICY_FIXED`. Boot count was 2.
+- Samsung re-enabled `com.wssyncmldm`,
+  `com.samsung.android.app.updatecenter`, and `com.sec.android.soagent` during
+  the first commissioned boot even though they were `disabled-user` before it.
+  The workflow reapplied those blocks after boot; all three now appear in the
+  disabled package list and `ota_disable_automatic_update=1`. The guarded
+  script was corrected to perform and verify that post-boot reapplication on
+  future phones.
+- No `MotionDetectorService`, Wake Lock, active Exhibit Motion camera or
+  `action.AUTO_START` is present on `R8YL41DLHAY`, because the physical operator
+  wizard, approved route/audibility, calibration, motion test and private PIN
+  are intentionally not automated. The Android system kiosk is commissioned;
+  unattended detector acceptance remains open.
+- A rendered screenshot after boot confirmed the native Ukrainian operator
+  screen: camera access is granted, the bundled-catalog selector is visible,
+  no narration is selected, and the route test explicitly reports
+  `Звук недоступний`. This is the correct fail-closed state with no approved AUX
+  or Bluetooth output connected; it is not audio acceptance.
+
+- The previous installation target was Samsung Galaxy A07 serial `R8YL41DLGLR`
   (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
   zero accounts, no Device Owner, Samsung Launcher as HOME, Lock Task `NONE`,
   and neither `ua.alexsnig.exhibitmotion` nor `com.guidemuseum` installed. No
@@ -208,7 +240,8 @@ Last verified: 2026-08-11
 
 The current status is **RELEASE CANDIDATE**, not final exhibition acceptance.
 
-1. On `R8YL41DLGLR`, complete the operator wizard locally: confirm the mounted
+1. On `R8YL41DLHAY` (and separately on `R8YL41DLGLR` if that phone remains in
+   deployment), complete the operator wizard locally: confirm the mounted
    camera, select the intended narration, connect the final approved route,
    physically confirm audibility, save volume, calibrate, run the motion test,
    and enter the operator-owned PIN. Then cold-reboot, perform a Samsung first

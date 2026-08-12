@@ -172,6 +172,16 @@ ota_packages=(
   com.sec.android.soagent
 )
 
+disable_samsung_ota() {
+  local ota_package
+  for ota_package in "${ota_packages[@]}"; do
+    [[ -n "$(device_shell pm path "$ota_package" 2>/dev/null || true)" ]] || die \
+      "expected Samsung OTA package is missing: $ota_package"
+    device_shell pm disable-user --user 0 "$ota_package" >/dev/null
+  done
+  device_shell settings put global ota_disable_automatic_update 1
+}
+
 verify_system_kiosk() {
   local current_dpm current_package current_activity current_home disabled_packages ota_setting permission_line
   current_dpm="$(device_shell dumpsys device_policy)"
@@ -254,12 +264,7 @@ device_shell am start -W \
 sleep 2
 
 note "[5/8] Disable unattended Samsung OTA entry points"
-for ota_package in "${ota_packages[@]}"; do
-  [[ -n "$(device_shell pm path "$ota_package" 2>/dev/null || true)" ]] || die \
-    "expected Samsung OTA package is missing: $ota_package"
-  device_shell pm disable-user --user 0 "$ota_package" >/dev/null
-done
-device_shell settings put global ota_disable_automatic_update 1
+disable_samsung_ota
 
 note "[6/8] Verify Device Owner, HOME, Lock Task, fixed permissions and OTA"
 verify_system_kiosk
@@ -289,6 +294,9 @@ for _ in {1..90}; do
 done
 [[ "$boot_completed" == "1" ]] || die "phone did not complete Android boot within 180 seconds"
 sleep 5
+
+note "Re-apply Samsung OTA blocks after the first commissioned boot"
+disable_samsung_ota
 
 note "[8/8] Verify post-boot kiosk and AUTO_START evidence"
 verify_system_kiosk

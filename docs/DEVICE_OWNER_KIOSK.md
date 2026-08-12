@@ -176,6 +176,13 @@ Reversible with `pm enable`. **This does not survive a factory reset** and is
 not a managed-device guarantee. The durable fix is a Device Owner
 `SystemUpdatePolicy`, which is not implemented in the app yet.
 
+On newly commissioned Android 16 Galaxy A07 serial `R8YL41DLHAY`, the three
+packages reported `disabled-user` before the first reboot but Samsung enabled
+them again during that boot; the global setting remained `1`. The guarded
+commissioning script therefore reapplies all three `pm disable-user` commands
+after Android reports boot completion and verifies the post-boot state. Do not
+accept only the pre-reboot package state as evidence.
+
 ### 4. Operator wizard
 
 1. Open the app. Complete every step: camera permission, bundled-catalog
