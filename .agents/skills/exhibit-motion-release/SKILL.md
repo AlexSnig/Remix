@@ -84,6 +84,13 @@ It writes concise evidence under `/tmp`. Use `--preflight-only` for a read-only
 audit and explicit `--serial`/`--apk` only when automatic resolution cannot be
 unambiguous.
 
+If no authorized physical phone appears, or an explicit serial is not ready,
+the script must restart only the host ADB server once and repeat discovery
+before returning a blocker. This is the default recovery for Samsung appearing
+as USB/MTP or `unauthorized`; it does not modify or reboot the phone. If the
+second result remains `unauthorized`, the only manual step is approving the USB
+debugging dialog on the unlocked phone.
+
 Do not ask for repeat permission for those scripted actions when every guard
 passes. A guard failure is a stop condition, not a reason to improvise. The
 standing authority excludes factory reset, account/user/other-owner removal,

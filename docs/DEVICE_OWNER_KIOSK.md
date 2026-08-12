@@ -63,6 +63,13 @@ only because the screen happened to be on; and USB debugging is not actually
 being turned off. Separately, after a reboot the host adb server may not
 re-detect the phone until `adb kill-server && adb start-server`.
 
+For the guarded agent workflow, that host-only restart is now the automatic
+first recovery whenever no authorized physical ADB phone appears or the target
+serial is not ready. Retry discovery once before returning a blocker. On
+2026-08-12, Galaxy A07 serial `R8YY929PZDA` changed from `unauthorized` to
+`device` immediately after this restart, without any phone-state change or
+additional USB-dialog action.
+
 ## Preferred agent command
 
 The user has granted standing authorization for the guarded Exhibit Motion

@@ -77,7 +77,31 @@ Last verified: 2026-08-12
   product-lane and existing system-kiosk checks passed. No phone state changed
   during this validation.
 
-- The current installation target is Samsung Galaxy A07 serial `R8YL41DLHAY`
+- The current installation target is Samsung Galaxy A07 serial `R8YY929PZDA`
+  (`SM-A075F`), Android 16 / API 36. Its initial ADB state was `unauthorized`;
+  restarting only the host ADB server changed it to an authorized `device`.
+  The commissioning script now performs this one automatic restart whenever no
+  authorized physical phone appears, before returning a blocker.
+- On 2026-08-12 the guarded fresh-phone preflight for `R8YY929PZDA` proved one
+  owner user, zero accounts, no secure Android credential, no Device Owner, no
+  GuideMuseum/Exhibit Motion package, and the correct product lane. No factory
+  reset was needed or performed.
+- The exact signed 1.3.17/code 22 APK was installed fresh. Its pulled installed
+  `base.apk` is byte-identical to the workstation/client artifact, SHA-256
+  `840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7`;
+  package metadata records both first install and update at
+  `2026-08-12 15:41:06`.
+- After the authorized reboot, `R8YY929PZDA` is Device Owner type 0, Exhibit
+  Motion is the top-resumed HOME activity, Lock Task is `LOCKED`, and Camera,
+  Notifications and Bluetooth are granted with `POLICY_FIXED`. All three
+  Samsung OTA packages are disabled after the post-boot reapplication and
+  `ota_disable_automatic_update=1`; boot count is 2.
+- The rendered Ukrainian operator screen shows Camera granted, the bundled
+  catalog selector, no selected narration and explicit `Звук недоступний`.
+  No service/`action.AUTO_START` runs until the physical route/audibility,
+  calibration, motion test and private operator PIN are completed locally.
+
+- The previous installation target was Samsung Galaxy A07 serial `R8YL41DLHAY`
   (`SM-A075F`), Android 16 / API 36. On 2026-08-12 the guarded preflight proved
   exactly one owner user, zero accounts, no secure Android credential, no
   Device Owner, no GuideMuseum/Exhibit Motion package, and the correct physical
@@ -240,8 +264,8 @@ Last verified: 2026-08-12
 
 The current status is **RELEASE CANDIDATE**, not final exhibition acceptance.
 
-1. On `R8YL41DLHAY` (and separately on `R8YL41DLGLR` if that phone remains in
-   deployment), complete the operator wizard locally: confirm the mounted
+1. On `R8YY929PZDA` (and separately on `R8YL41DLHAY`/`R8YL41DLGLR` if those
+   phones remain in deployment), complete the operator wizard locally: confirm the mounted
    camera, select the intended narration, connect the final approved route,
    physically confirm audibility, save volume, calibrate, run the motion test,
    and enter the operator-owned PIN. Then cold-reboot, perform a Samsung first

@@ -97,11 +97,30 @@ if [[ -z "$serial" ]]; then
   mapfile -t physical_serials < <(
     awk 'NR > 1 && $2 == "device" && $1 !~ /^emulator-/ {print $1}' <<<"$devices_output"
   )
-  [[ ${#physical_serials[@]} -eq 1 ]] || die \
-    "expected exactly one authorized physical ADB phone; found ${#physical_serials[@]}"
-  serial="${physical_serials[0]}"
+  if [[ ${#physical_serials[@]} -eq 0 ]]; then
+    note "No authorized physical phone; restart the host ADB server once"
+    "$ADB_BIN" kill-server
+    "$ADB_BIN" start-server >/dev/null
+    devices_output="$("$ADB_BIN" devices)"
+  fi
+  mapfile -t attached_physical_serials < <(
+    awk 'NR > 1 && $1 !~ /^emulator-/ {print $1}' <<<"$devices_output"
+  )
+  [[ ${#attached_physical_serials[@]} -eq 1 ]] || die \
+    "expected exactly one attached physical ADB phone; found ${#attached_physical_serials[@]}"
+  serial="${attached_physical_serials[0]}"
+  device_state="$(awk -v wanted="$serial" '$1 == wanted {print $2; exit}' <<<"$devices_output")"
+  [[ "$device_state" == "device" ]] || die \
+    "ADB serial $serial is $device_state; unlock the phone and approve USB debugging"
 else
   device_state="$(awk -v wanted="$serial" '$1 == wanted {print $2; exit}' <<<"$devices_output")"
+  if [[ "$device_state" != "device" ]]; then
+    note "ADB serial $serial is not ready; restart the host ADB server once"
+    "$ADB_BIN" kill-server
+    "$ADB_BIN" start-server >/dev/null
+    devices_output="$("$ADB_BIN" devices)"
+    device_state="$(awk -v wanted="$serial" '$1 == wanted {print $2; exit}' <<<"$devices_output")"
+  fi
   [[ "$device_state" == "device" ]] || die "ADB serial $serial is not authorized and online"
 fi
 [[ "$serial" != emulator-* ]] || die "emulators are never commissioning targets"
