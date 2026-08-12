@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AlertTriangle, Bluetooth, CheckCircle2, Download, Headphones, ShieldCheck, SlidersHorizontal, Trash2, Volume2 } from 'lucide-react';
 import type { DetectorSettings } from '../types';
 import type { Language } from '../utils/lang';
-import { restoreKioskWithVerification } from '../utils/kioskTransition';
+import { canOpenOperatorMode, restoreKioskWithVerification } from '../utils/kioskTransition';
 import {
   MotionDetector,
   type NativeAudioRoute,
@@ -481,15 +481,15 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
           <button disabled={!pinIsValid || !pinMatches} type="button" onClick={() => run('kiosk', async () => { await MotionDetector.setOperatorPin({ pin: operatorPin }); setOperatorPin(''); setOperatorPinConfirmation(''); await refreshSetup(); setBusy(null); })} className="native-action">{busy === 'kiosk' ? t.preparing : t.savePin}</button>
         </div>}
 
-        {kioskState.operatorPinConfigured && !kioskState.autoStartAfterRebootEnabled && !kioskState.maintenanceMode && <div className="mt-4 space-y-2">
-          <input value={operatorPin} onChange={event => setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 12))} inputMode="numeric" type="password" autoComplete="current-password" placeholder={t.enablePin} className="native-input" />
-          <button disabled={!pinIsValid || !kioskState.autoStartReady} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.setAutoStartAfterReboot({ enabled: true, operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{busy === 'kiosk' ? t.preparing : t.enableKiosk}</button>
-        </div>}
-
-        {kioskState.autoStartAfterRebootEnabled && !kioskState.maintenanceMode && <div className="mt-4 space-y-2">
-          <p className="text-[11px] text-emerald-200">{t.lastBoot}: {lang === 'uk' ? kioskState.lastBootStartMessage : t.bootState[kioskState.lastBootStartState]}</p>
+        {kioskState.operatorPinConfigured && !kioskState.maintenanceMode && <div className="mt-4 space-y-2">
+          {kioskState.autoStartAfterRebootEnabled && <p className="text-[11px] text-emerald-200">{t.lastBoot}: {lang === 'uk' ? kioskState.lastBootStartMessage : t.bootState[kioskState.lastBootStartState]}</p>}
           <input value={operatorPin} onChange={event => setOperatorPin(event.target.value.replace(/\D/g, '').slice(0, 12))} inputMode="numeric" type="password" autoComplete="current-password" placeholder={t.operatorPin} className="native-input" />
-          <div className="grid gap-2 sm:grid-cols-2"><button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.unlockKiosk({ pin: operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.openMaintenance}</button><button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.setAutoStartAfterReboot({ enabled: false, operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.disableAutostart}</button></div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {canOpenOperatorMode(kioskState) && <button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.unlockKiosk({ pin: operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.openMaintenance}</button>}
+            {kioskState.autoStartAfterRebootEnabled
+              ? <button disabled={!pinIsValid} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.setAutoStartAfterReboot({ enabled: false, operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{t.disableAutostart}</button>
+              : <button disabled={!pinIsValid || !kioskState.autoStartReady} type="button" onClick={() => run('kiosk', async () => { setKioskState(await MotionDetector.setAutoStartAfterReboot({ enabled: true, operatorPin })); setOperatorPin(''); setBusy(null); })} className="native-action">{busy === 'kiosk' ? t.preparing : t.enableKiosk}</button>}
+          </div>
         </div>}
 
         {kioskFeedback && <p role={kioskFeedback.kind === 'error' ? 'alert' : 'status'} aria-live="polite" className={`mt-4 rounded-xl border p-3 text-[11px] ${kioskFeedback.kind === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-200'}`}>{kioskFeedback.message}</p>}

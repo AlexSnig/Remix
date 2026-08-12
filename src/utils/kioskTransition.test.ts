@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NativeKioskState } from '../native/motionDetector';
-import { restoreKioskWithVerification } from './kioskTransition';
+import { canOpenOperatorMode, restoreKioskWithVerification } from './kioskTransition';
 
 function state(overrides: Partial<NativeKioskState> = {}): NativeKioskState {
   return {
@@ -61,5 +61,27 @@ describe('restoreKioskWithVerification', () => {
       vi.fn().mockRejectedValue(pinError),
       vi.fn(),
     )).rejects.toBe(pinError);
+  });
+});
+
+describe('canOpenOperatorMode', () => {
+  it('keeps maintenance available before auto-start readiness is complete', () => {
+    expect(canOpenOperatorMode(state({
+      autoStartAfterRebootEnabled: false,
+      autoStartReady: false,
+      isLockTaskActive: true,
+      maintenanceMode: false,
+      blockers: ['audio_route_not_verified', 'calibration_missing', 'motion_test_missing'],
+    }))).toBe(true);
+  });
+
+  it('keeps maintenance available after auto-start is enabled', () => {
+    expect(canOpenOperatorMode(state({maintenanceMode: false}))).toBe(true);
+  });
+
+  it('does not offer PIN-gated maintenance without Device Owner or a PIN', () => {
+    expect(canOpenOperatorMode(state({isDeviceOwner: false, maintenanceMode: false}))).toBe(false);
+    expect(canOpenOperatorMode(state({operatorPinConfigured: false, maintenanceMode: false}))).toBe(false);
+    expect(canOpenOperatorMode(state({maintenanceMode: true}))).toBe(false);
   });
 });

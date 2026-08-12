@@ -1,18 +1,24 @@
 # Exhibit Motion project state
 
-Last verified: 2026-08-12
+Last verified: 2026-08-13
 
 ## Release
 
-- Current release candidate: `1.3.17`, Android `versionCode 22`.
-- Installed source checkpoint:
-  `f8052988b8ca6ad8332c56852fad8028cec3f508`, pushed to `origin/main`.
-- Exact signed APK rebuilt from that checkpoint, SHA-256:
-  `840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7`.
-- `1.3.17` preserves the reviewed 1.3.16 behavior and uses a new version code
-  because the freshly rebuilt signed APK is a different binary from the
-  already-used code 21 artifact. It adds no camera, audio, kiosk, or operator
-  behavior change.
+- Current release candidate: `1.3.18`, Android `versionCode 23`.
+- The source checkpoint and final post-checkpoint APK hash are pending the
+  required commit/push/rebuild sequence. The pre-checkpoint signed candidate
+  passed the static release audit with SHA-256
+  `2c09eb920d520244f4d027016b5d5306ef22c152b518d958ec09abe7b97d77b1`;
+  it must not be installed or handed off until the checkpoint rebuild is
+  independently verified.
+- `1.3.18` restores PIN-gated operator access on a commissioned phone before
+  the physical auto-start checklist is complete. This breaks the 1.3.17 setup
+  deadlock without relaxing route, calibration, motion-test, or auto-start
+  gates.
+- `1.3.17` / code 22 is superseded and must not be distributed: after a PIN
+  was created but before auto-start readiness was complete, its React panel
+  hid the only operator-maintenance action while native Bluetooth Settings
+  correctly required maintenance mode.
 - `1.3.15` / code 20 is superseded and must not be distributed: on Bluetooth
   devices such as S207U that expose both call audio (SCO) and media audio
   (A2DP), it could select SCO and produce silent or broken narration.
@@ -24,26 +30,28 @@ Last verified: 2026-08-12
   `bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e`
   (RSA 4096).
 - Runtime has no `android.permission.INTERNET`.
-- Current client handoff:
-  `/home/alex/exhibit-handoff-1.3.17-code22`. It contains exactly the signed
-  APK, current staff PDF, current integrator PDF, and `SHA256SUMS.txt`; no
-  signing material, source, QA evidence, or phone backup is present.
+- The old client handoff `/home/alex/exhibit-handoff-1.3.17-code22` is retained
+  only as a superseded local package and must not be delivered. A minimal
+  1.3.18 client folder is not yet assembled.
 - `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
   SHA-256: `3f867a425664d4b0b0c3137ad235b61ce40cd948d282d44cbe6974d8441709e9`;
   integrator PDF SHA-256:
   `9f5aade5ac55f54b115d77cafbadc805205b654211500f9ba718cb926f8b577d`.
-- Both delivered PDFs are current 9-page A4 editions dated 2026-08-11. The
-  staff PDF names 1.3.17/code 22 and the exact release filename; the integrator
-  PDF records the artifact hash/certificate, Android 16 commissioning,
-  current serial-scoped evidence, and remaining physical gates.
+- The 1.3.17 PDFs are visually valid 9-page A4 files but are not current for
+  1.3.18 handoff. Their sources must be corrected and regenerated before the
+  new client folder is assembled.
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
-## Automated evidence for 1.3.17
+## Automated evidence for 1.3.18
 
 - `npm run lint`: passed.
-- `npm run test:coverage`: 17/17 passed; 100% lines, 97.02% statements,
+- `npm run test:coverage`: 21/21 passed; 100% lines, 97.02% statements,
   85.07% branches, 89.13% functions in the selected critical utilities.
+- The new component regression reproduces the exact commissioned-phone state:
+  Device Owner and Lock Task active, PIN configured, auto-start disabled, and
+  route/calibration/motion incomplete. It proves that operator access is
+  available while auto-start remains disabled.
 - `npm run build`: passed.
 - `npx cap sync android`: passed; the packaged Android WebView contains
   `getAudioLibrary` and the Ukrainian catalog selector.
@@ -52,7 +60,7 @@ Last verified: 2026-08-12
   cover same-name SCO/A2DP preference, unverified A2DP selection, SCO-only
   rejection, and fail-closed approved-name matching.
 - Android native unit tests, lint, `assembleDebug`, and signed
-  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL`, 284
+  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL`, 274
   actionable tasks).
 - Exact signed APK: v2 signature valid, expected certificate, ZIP/zipalign
   valid, R8 Capacitor annotation descriptor present, not debuggable, no
@@ -77,7 +85,7 @@ Last verified: 2026-08-12
   product-lane and existing system-kiosk checks passed. No phone state changed
   during this validation.
 
-- The current installation target is Samsung Galaxy A07 serial `R8YY929PZDA`
+- The most recently fresh-commissioned target is Samsung Galaxy A07 serial `R8YY929PZDA`
   (`SM-A075F`), Android 16 / API 36. Its initial ADB state was `unauthorized`;
   restarting only the host ADB server changed it to an authorized `device`.
   The commissioning script now performs this one automatic restart whenever no
@@ -101,7 +109,7 @@ Last verified: 2026-08-12
   No service/`action.AUTO_START` runs until the physical route/audibility,
   calibration, motion test and private operator PIN are completed locally.
 
-- The previous installation target was Samsung Galaxy A07 serial `R8YL41DLHAY`
+- The currently connected incident target is Samsung Galaxy A07 serial `R8YL41DLHAY`
   (`SM-A075F`), Android 16 / API 36. On 2026-08-12 the guarded preflight proved
   exactly one owner user, zero accounts, no secure Android credential, no
   Device Owner, no GuideMuseum/Exhibit Motion package, and the correct physical
@@ -132,6 +140,17 @@ Last verified: 2026-08-12
   no narration is selected, and the route test explicitly reports
   `Звук недоступний`. This is the correct fail-closed state with no approved AUX
   or Bluetooth output connected; it is not audio acceptance.
+- On 2026-08-13 the installed `base.apk` was pulled again and remained
+  byte-identical to the 1.3.17/code 22 handoff artifact, SHA-256
+  `840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7`.
+  This excludes a wrong-file installation as the cause of the incident.
+- The live UI and source inspection reproduced the actual deadlock: Android
+  reported Lock Task `LOCKED`; the panel reported a configured operator PIN,
+  disabled auto-start, and incomplete route/calibration/motion checks; the
+  «Відкрити операторський режим» action was absent, while tapping Bluetooth
+  produced «Спочатку відкрийте операторський режим». The PIN value was not
+  used, guessed, recorded in the project, or retained; temporary UI diagnostics
+  were deleted immediately after the check.
 
 - The previous installation target was Samsung Galaxy A07 serial `R8YL41DLGLR`
   (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,

@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.3.18 — Operator access during initial Bluetooth setup
+
+- Keeps the PIN-gated «Відкрити операторський режим» action available on a
+  commissioned Device Owner phone even before auto-start readiness is complete.
+- Breaks the initial-setup deadlock where system Lock Task was already active,
+  Bluetooth Settings required operator maintenance, but the maintenance action
+  was hidden until route, calibration, and motion checks had all passed.
+- Preserves the fail-closed readiness gate: incomplete physical checks still
+  prevent detector auto-start, and Bluetooth pairing still requires the local
+  operator PIN.
+- Versioned as Android `versionCode 23`; it must not be distributed as the
+  already-installed 1.3.17/code 22 binary.
+
 ## 1.3.17 — Traceable build for the next museum phone
 
 - Preserves the reviewed 1.3.16 behavior while assigning a new Android
