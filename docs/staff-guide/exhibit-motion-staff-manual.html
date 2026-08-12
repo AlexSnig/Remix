@@ -363,9 +363,9 @@
     <p class="subtitle">Датчик руху музейного експонату: камера фіксує рух, а застосунок відтворює підготовлений звук через зовнішній аудіомаршрут.</p>
 
     <div class="meta">
-      <span class="pill">ПЗ Exhibit Motion 1.3.17 · code 22</span>
+      <span class="pill">ПЗ Exhibit Motion 1.3.18 · code 23</span>
       <span class="pill">для персоналу експозиції</span>
-      <span class="pill">11 серпня 2026</span>
+      <span class="pill">13 серпня 2026</span>
     </div>
 
     <div class="cover-bottom">
@@ -437,23 +437,22 @@
       <div class="card">
         <p class="card-title">Звичайне встановлення</p>
         <div class="step-list">
-          <div class="step"><span class="step-index">1</span><div><h3>Використати release APK</h3><p class="small">Файл: <strong>ExhibitMotion-1.3.17-code22-release.apk</strong>. Не встановлювати debug APK на фінальний телефон.</p></div></div>
+          <div class="step"><span class="step-index">1</span><div><h3>Використати release APK</h3><p class="small">Файл: <strong>ExhibitMotion-1.3.18-code23-release.apk</strong>. Не встановлювати debug APK на фінальний телефон.</p></div></div>
           <div class="step"><span class="step-index">2</span><div><h3>Встановити та відкрити застосунок</h3><p class="small">Надати дозвіл до камери, коли Android покаже системне вікно.</p></div></div>
           <div class="step"><span class="step-index">3</span><div><h3>Пройти майстер на сторінках 4–5</h3><p class="small">Без шести зелених перевірок кнопка «УВІМКНУТИ ДАТЧИК» навмисно недоступна.</p></div></div>
         </div>
-        <div class="tech-box" style="margin-top:4mm"><code>adb install -r ExhibitMotion-1.3.17-code22-release.apk</code></div>
+        <div class="tech-box" style="margin-top:4mm"><code>adb install -r ExhibitMotion-1.3.18-code23-release.apk</code></div>
       </div>
       <div class="card">
         <p class="card-title">Автозапуск / Device Owner</p>
-        <p class="small"><strong>Передумови:</strong> фінальний телефон скинуто до заводських налаштувань; на ньому немає Google-акаунта, work profile або другого користувача; використовується той самий release key.</p>
+        <p class="small"><strong>Передумови:</strong> захищена перевірка підтвердила один user 0, нуль акаунтів, відсутність системного PIN/пароля, іншого Device Owner та конфліктного музейного APK. Factory reset не потрібен, якщо ці умови вже виконані, і ніколи не робиться без окремого дозволу.</p>
         <div class="notice red" style="margin-top:4mm">
           <div class="mark">!</div>
           <div class="small"><strong>Не запускайте команду Device Owner на звичайному робочому телефоні.</strong> Це дія лише для чистого тестового або фінального музейного телефона.</div>
         </div>
-        <div class="tech-box" style="margin-top:4mm"><code>adb shell dpm set-device-owner \
-ua.alexsnig.exhibitmotion/.kiosk.\
-ExhibitDeviceAdminReceiver</code></div>
-        <p class="tiny" style="margin-top:3mm">Після комісіонування не змінювати package name, DeviceAdmin receiver або signing key. Оновлення має бути підписане тим самим ключем і мати вищий versionCode.</p>
+        <div class="tech-box" style="margin-top:4mm"><code>bash .agents/skills/exhibit-motion-release/scripts/\
+commission-museum-phone.sh</code></div>
+        <p class="tiny" style="margin-top:3mm">Скрипт сам перевіряє точний телефон і APK, встановлює без очищення даних, застосовує kiosk/OTA, виконує один reboot та перевіряє результат. Після комісіонування не змінювати package name, DeviceAdmin receiver або signing key.</p>
       </div>
     </div>
 
@@ -498,7 +497,7 @@ ExhibitDeviceAdminReceiver</code></div>
     </div>
     <div class="notice red" style="margin-top:3mm">
       <div class="mark">!</div>
-      <div><strong>«Звук недоступний» або інший Bluetooth.</strong> Не переходьте до наступних кроків. Перевірте кабель/живлення колонок або поверніть схвалений Bluetooth-пристрій, потім запустіть тест маршруту знову.</div>
+      <div><strong>«Звук недоступний» або інший Bluetooth.</strong> Не переходьте далі. Для нового підключення спочатку введіть PIN → «Відкрити операторський режим», потім натисніть «Підключити Bluetooth-колонку». Після повернення запустіть тест маршруту.</div>
     </div>
     <p class="tiny" style="margin-top:4mm">Заміна аудіофайлу скасовує перевірку маршруту й тест руху. Після будь-якої зміни поверніться до незавершених кроків.</p>
     <div class="footer"><span>Exhibit Motion · перший запуск</span><span>4 / 9</span></div>

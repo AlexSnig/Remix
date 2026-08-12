@@ -131,7 +131,7 @@ After this the app is a protected package and `am force-stop` on it is ignored.
 ### 2. Apply HOME and Lock Task policy in the current panel
 
 `dpm set-device-owner` over ADB does **not** run `applyDeviceOwnerPolicies`.
-Open Exhibit Motion after provisioning. In 1.3.17 the
+Open Exhibit Motion after provisioning. In 1.3.18 the
 **«Налаштувати Home і Lock Task»** button appears whenever either HOME or Lock
 Task policy is missing. It needs no operator PIN. Pressing it applies the
 persistent HOME preference, Lock Task allowlist, keyguard policy and fixed
@@ -145,7 +145,7 @@ the same checks on another phone or Android release.
 
 Earlier builds hid this button when the app was already HOME but Lock Task was
 unset, and required temporarily handing HOME to Samsung Launcher. That
-workaround is obsolete. Do not use it on 1.3.17; if the button is absent,
+workaround is obsolete. Do not use it on 1.3.18; if the button is absent,
 verify the installed package/version and record the discrepancy instead.
 
 Verify — **note the field name**:
@@ -206,6 +206,13 @@ accept only the pre-reboot package state as evidence.
 4. When all six checks are green, enter the PIN and tap
    **«Увімкнути kiosk і автозапуск»**. If the button stays greyed out, the
    amber blocker list directly above it names the reason verbatim.
+
+On a phone where system Lock Task was applied before the wizard is complete,
+1.3.18 keeps **«Відкрити операторський режим»** visible as soon as an operator
+PIN exists. Enter that PIN before opening Android Bluetooth Settings. The
+auto-start button remains independently disabled until route, calibration and
+motion evidence are complete. 1.3.17 hid maintenance in this exact state and
+must not be used for new installation or handoff.
 
 ### 5. Verify the kiosk before rebooting
 

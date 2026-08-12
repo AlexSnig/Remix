@@ -106,6 +106,14 @@ Do not arm when AUX or the approved Bluetooth route is absent. Never approve a
 route from ADB: a person must hear the intended speaker. Do not guess or brute
 force the operator PIN.
 
+On an already commissioned phone, system Lock Task can be active before the
+operator wizard is complete. In 1.3.18 the configured PIN must expose
+**«Відкрити операторський режим»** even while auto-start readiness is false;
+Bluetooth Settings remains maintenance-only. If Bluetooth reports that
+operator mode is required but the PIN-gated maintenance action is absent,
+classify it as a release/UI regression rather than a pairing failure. Never
+work around it by removing Device Owner or clearing app data.
+
 Current lens choice is a physical-installation decision. Follow
 `docs/PROJECT_STATE.md`; do not switch front/rear camera without confirming how
 the phone is mounted, then recalibrate after any change.

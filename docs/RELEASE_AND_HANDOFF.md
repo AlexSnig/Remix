@@ -188,7 +188,7 @@ adb -s SERIAL shell dpm set-device-owner \
   ua.alexsnig.exhibitmotion/.kiosk.ExhibitDeviceAdminReceiver
 ```
 
-Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.17
+Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.18
 shows this whenever either HOME or Lock Task policy is missing; do not apply the
 obsolete stock-launcher workaround from earlier releases. Then verify Device
 Owner type `0`, Lock Task policy, permissions, persistent HOME, and disabled OTA
@@ -207,6 +207,12 @@ Follow the six native checks in order:
 
 Then close operator maintenance with the existing PIN, enable kiosk/autostart,
 reboot, and repeat a motion trigger with the screen off.
+
+If Lock Task is already active while the first operator wizard is incomplete,
+1.3.18 still exposes the PIN-gated **«Відкрити операторський режим»** action.
+Use it before **«Підключити Bluetooth-колонку»**. The Bluetooth action must stay
+maintenance-only, while the auto-start action must remain blocked until the
+physical readiness checklist passes.
 
 Safety invariants:
 

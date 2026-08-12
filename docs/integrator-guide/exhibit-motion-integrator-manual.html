@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Exhibit Motion 1.3.17 — інструкція для інтегратора</title>
+  <title>Exhibit Motion 1.3.18 — інструкція для інтегратора</title>
   <style>
     :root {
       --navy:#05091d; --navy2:#111a35; --ink:#121a2d; --soft:#526078;
@@ -45,9 +45,9 @@
     <p class="eyebrow" style="margin-top:16mm">Музейна інсталяція · Android kiosk</p>
     <h1>EXHIBIT<br>MOTION</h1>
     <p class="sub">Інструкція з інсталяції, commissioning та приймання для інтегратора</p>
-    <div class="meta"><span class="pill">версія 1.3.17</span><span class="pill">versionCode 22</span><span class="pill">Android 16 перевірено</span></div>
+    <div class="meta"><span class="pill">версія 1.3.18</span><span class="pill">versionCode 23</span><span class="pill">Android 16 перевірено</span></div>
     <div class="stats"><div class="stat"><b>офлайн</b><span>без runtime-сервера та INTERNET permission</span></div><div class="stat"><b>20</b><span>озвучень у вбудованому каталозі</span></div><div class="stat"><b>fail closed</b><span>без звуку через динамік телефона</span></div></div>
-    <div class="footer"><span>Exhibit Motion · інтегратор</span><span>11 серпня 2026 · 1/9</span></div>
+    <div class="footer"><span>Exhibit Motion · інтегратор</span><span>13 серпня 2026 · 1/9</span></div>
   </section>
 
   <section class="page">
@@ -55,48 +55,42 @@
     <p class="lede">Клієнтська папка навмисно мінімальна. Ключ підпису, паролі, вихідний код, QA-логи й резерви телефона до неї не входять.</p>
     <div class="rule"></div>
     <div class="grid two">
-      <div class="card"><p class="card-title">Чотири дозволені файли</p><div class="check"><span class="box"></span><b>Release APK 1.3.17/code 22</b></div><div class="check"><span class="box"></span><span>PDF для персоналу</span></div><div class="check"><span class="box"></span><span>цей PDF для інтегратора</span></div><div class="check"><span class="box"></span><span>SHA256SUMS.txt</span></div></div>
-      <div class="card dark"><p class="card-title">Точна ідентичність APK</p><p><strong>Package</strong><br><code>ua.alexsnig.exhibitmotion</code></p><p style="margin-top:3mm"><strong>Version</strong><br><code>1.3.17 / 22</code></p><p style="margin-top:3mm"><strong>SHA-256</strong><br><code>840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7</code></p></div>
+      <div class="card"><p class="card-title">Чотири дозволені файли</p><div class="check"><span class="box"></span><b>Release APK 1.3.18/code 23</b></div><div class="check"><span class="box"></span><span>PDF для персоналу</span></div><div class="check"><span class="box"></span><span>цей PDF для інтегратора</span></div><div class="check"><span class="box"></span><span>SHA256SUMS.txt</span></div></div>
+      <div class="card dark"><p class="card-title">Точна ідентичність APK</p><p><strong>Package</strong><br><code>ua.alexsnig.exhibitmotion</code></p><p style="margin-top:3mm"><strong>Version</strong><br><code>1.3.18 / 23</code></p><p style="margin-top:3mm"><strong>SHA-256</strong><br><code>b240f2432ee3d45c5638b3262d83a3cd9a91da3c2b335b549f0aa60bac1a9ba8</code></p></div>
     </div>
-    <div class="notice teal" style="margin-top:4mm"><span class="badge">✓</span><div><h3>Перевірка папки</h3><div class="codebox" style="margin-top:2mm"><code>sha256sum -c SHA256SUMS.txt</code></div><p class="small" style="margin-top:2mm">Усі чотири рядки мають завершитися <strong>OK</strong>.</p></div></div>
+    <div class="notice teal" style="margin-top:4mm"><span class="badge">✓</span><div><h3>Перевірка папки</h3><div class="codebox" style="margin-top:2mm"><code>sha256sum -c SHA256SUMS.txt</code></div><p class="small" style="margin-top:2mm">Усі три рядки payload мають завершитися <strong>OK</strong>; manifest не хешує сам себе.</p></div></div>
     <div class="notice amber" style="margin-top:3mm"><span class="badge">!</span><div><h3>Сертифікат релізу</h3><p class="small">SHA-256: <code>bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e</code>. Не встановлювати APK з іншим сертифікатом.</p></div></div>
     <table class="table" style="margin-top:4mm"><tr><th>Рівень</th><th>Що він доводить</th><th>Не доводить</th></tr><tr><td><span class="status ok">АРТЕФАКТ</span></td><td>Пакет, версію, підпис, offline/R8/ZIP</td><td>Фізичний звук і рух</td></tr><tr><td><span class="status ok">ТЕЛЕФОН</span></td><td>Device Owner, HOME, Lock Task, дозволи</td><td>8-годинний burn-in</td></tr><tr><td><span class="status open">ПРИЙМАННЯ</span></td><td>Монтаж, маршрут, рух, reboot, тепло</td><td>Не замінюється ADB</td></tr></table>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>2/9</span></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>2/9</span></div>
   </section>
 
   <section class="page">
     <p class="eyebrow">02 · preflight та інсталяція</p><h2 style="margin-top:3mm">Працювати лише з точним serial</h2>
     <p class="lede">Новий телефон і вже commissioned телефон мають різні процедури. Не виконувати factory reset, uninstall або clear data без окремого письмового дозволу.</p>
     <div class="rule"></div>
-    <div class="notice red"><span class="badge">×</span><div><h3>Стоп-умови нового телефона</h3><p class="small">Більше одного користувача, будь-який акаунт, наявний Device Owner або інший музейний пакет. Зупинитися й узгодити подальші дії.</p></div></div>
-    <div class="codebox dark" style="margin-top:4mm"><code>adb devices -l
-adb -s SERIAL shell pm list users
-adb -s SERIAL shell dumpsys account
-adb -s SERIAL shell dumpsys device_policy
-adb -s SERIAL shell pm list packages ua.alexsnig.exhibitmotion
-adb -s SERIAL shell pm list packages com.guidemuseum</code></div>
+    <div class="notice red"><span class="badge">×</span><div><h3>Стоп-умови нового телефона</h3><p class="small">Емулятор/не SM-A075F, кілька телефонів, більше одного user, акаунт, системний PIN/пароль, інший Device Owner або музейний пакет. Не обходити guards.</p></div></div>
+    <div class="codebox dark" style="margin-top:4mm"><code>bash .agents/skills/exhibit-motion-release/scripts/\
+commission-museum-phone.sh --serial SERIAL \
+  --apk ExhibitMotion-1.3.18-code23-release.apk \
+  --preflight-only</code></div>
     <div class="grid two" style="margin-top:4mm">
-      <div class="card"><p class="card-title">Очікування для нового телефона</p><div class="check"><span class="box"></span><span>один user 0 / Власник</span></div><div class="check"><span class="box"></span><span>Accounts: 0</span></div><div class="check"><span class="box"></span><span>Device Owner Type: -1</span></div><div class="check"><span class="box"></span><span>конфліктних пакетів немає</span></div></div>
-      <div class="card"><p class="card-title">Встановлення</p><div class="codebox"><code>adb -s SERIAL install -r \
-  ExhibitMotion-1.3.17-code22-release.apk
-
-adb -s SERIAL shell dumpsys package \
-  ua.alexsnig.exhibitmotion</code></div><p class="tiny" style="margin-top:2mm">Очікувати versionName=1.3.17 та versionCode=22.</p></div>
+      <div class="card"><p class="card-title">Очікування для нового телефона</p><div class="check"><span class="box"></span><span>SM-A075F, один user 0</span></div><div class="check"><span class="box"></span><span>Accounts: 0; credential NONE</span></div><div class="check"><span class="box"></span><span>Device Owner відсутній</span></div><div class="check"><span class="box"></span><span>конфліктних пакетів немає</span></div></div>
+      <div class="card"><p class="card-title">Встановлення</p><div class="codebox"><code>bash .agents/skills/exhibit-motion-release/scripts/\
+commission-museum-phone.sh --serial SERIAL \
+  --apk ExhibitMotion-1.3.18-code23-release.apk</code></div><p class="tiny" style="margin-top:2mm">Скрипт встановлює з <code>-r</code>, перевіряє 1.3.18/code 23 і pulled base.apk, застосовує policies та виконує один reboot.</p></div>
     </div>
-    <div class="notice orange" style="margin-top:4mm"><span class="badge">#</span><div><h3>Обов’язкова byte-for-byte перевірка</h3><p class="small">Отримати шлях через <code>pm path ua.alexsnig.exhibitmotion</code>, витягнути <code>base.apk</code> командою <code>adb pull</code> і звірити його SHA-256 з <code>840314…c1cfc7</code>.</p></div></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>3/9</span></div>
+    <div class="notice orange" style="margin-top:4mm"><span class="badge">#</span><div><h3>Обов’язкова byte-for-byte перевірка</h3><p class="small">Отримати шлях через <code>pm path ua.alexsnig.exhibitmotion</code>, витягнути <code>base.apk</code> командою <code>adb pull</code> і звірити його SHA-256 з <code>b240f2…1a9ba8</code>.</p></div></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>3/9</span></div>
   </section>
 
   <section class="page">
     <p class="eyebrow">03 · Device Owner та kiosk</p><h2 style="margin-top:3mm">Постійний HOME і Lock Task</h2>
-    <p class="lede">Команду Device Owner виконувати лише після чистого preflight і явного дозволу власника телефона.</p>
+    <p class="lede">Device Owner застосовується guarded-скриптом лише після чистого preflight і дозволу власника телефона.</p>
     <div class="rule"></div>
-    <div class="codebox dark"><code>adb -s SERIAL shell dpm set-device-owner \
-  ua.alexsnig.exhibitmotion/.kiosk.ExhibitDeviceAdminReceiver
-
-adb -s SERIAL shell am start -n \
-  ua.alexsnig.exhibitmotion/.MainActivity</code></div>
-    <div class="notice orange" style="margin-top:4mm"><span class="badge">1</span><div><h3>На екрані застосунку</h3><p class="small">Натиснути <strong>«Налаштувати Home і Lock Task»</strong>. У 1.3.17 кнопка доступна без операторського PIN, якщо бракує HOME або Lock Task policy.</p></div></div>
+    <div class="codebox dark"><code>bash .agents/skills/exhibit-motion-release/scripts/\
+commission-museum-phone.sh --serial SERIAL \
+  --apk ExhibitMotion-1.3.18-code23-release.apk</code></div>
+    <div class="notice orange" style="margin-top:4mm"><span class="badge">1</span><div><h3>Політики без screen taps</h3><p class="small">Скрипт викликає native policy-compliance Activity, а не координати екрана: HOME, Lock Task, keyguard policy і три fixed permissions застосовуються та перевіряються автоматично.</p></div></div>
     <div class="grid two" style="margin-top:4mm">
       <div class="card"><p class="card-title">Системні докази</p><div class="codebox"><code>adb -s SERIAL shell dumpsys device_policy
 adb -s SERIAL shell dumpsys activity activities
@@ -108,55 +102,55 @@ adb -s SERIAL shell cmd package \
   -c android.intent.category.HOME</code></div></div>
       <div class="card"><p class="card-title">Очікуваний стан</p><div class="check"><span class="box"></span><span>Device Owner Type: 0</span></div><div class="check"><span class="box"></span><span>LockTaskPolicy містить пакет</span></div><div class="check"><span class="box"></span><span>mLockTaskModeState=LOCKED</span></div><div class="check"><span class="box"></span><span>Exhibit Motion — HOME</span></div><div class="check"><span class="box"></span><span>Camera / Notifications / Bluetooth: granted=true, POLICY_FIXED</span></div></div>
     </div>
-    <div class="notice teal" style="margin-top:4mm"><span class="badge">✓</span><div><h3>Поточний доказ Android 16</h3><p class="small">На Galaxy A07 <code>R8YL41DLGLR</code> 1.3.17 застосував HOME, Lock Task і три fixed-permissions без launcher chooser. Це доказ лише для цього serial.</p></div></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>4/9</span></div>
+    <div class="notice teal" style="margin-top:4mm"><span class="badge">✓</span><div><h3>Поточний доказ Android 16</h3><p class="small">На Galaxy A07 <code>R8YL41DLHAY</code> 1.3.18/code 23 зберіг Device Owner, HOME, <code>LOCKED</code> і три fixed permissions після update/reboot. Доказ лише для цього serial.</p></div></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>4/9</span></div>
   </section>
 
   <section class="page">
     <p class="eyebrow">04 · OTA та operator wizard</p><h2 style="margin-top:3mm">Завершити шість перевірок</h2>
     <div class="rule"></div>
-    <div class="card"><p class="card-title">Вимкнути Samsung OTA на виділеному телефоні</p><div class="codebox"><code>adb -s SERIAL shell pm disable-user --user 0 com.wssyncmldm
-adb -s SERIAL shell pm disable-user --user 0 com.samsung.android.app.updatecenter
-adb -s SERIAL shell pm disable-user --user 0 com.sec.android.soagent
-adb -s SERIAL shell settings put global ota_disable_automatic_update 1</code></div><p class="tiny" style="margin-top:2mm">Оборотно через <code>pm enable</code>; після factory reset налаштування треба повторити.</p></div>
+    <div class="card"><p class="card-title">Samsung OTA на виділеному телефоні</p><div class="codebox"><code>com.wssyncmldm
+com.samsung.android.app.updatecenter
+com.sec.android.soagent
+ota_disable_automatic_update=1</code></div><p class="tiny" style="margin-top:2mm">Guarded-скрипт вимикає та перевіряє їх до reboot, потім повторює після boot: Android 16 може сам увімкнути пакети під час першого запуску.</p></div>
     <div class="grid two" style="margin-top:4mm">
       <div class="card"><p class="card-title">Майстер у застосунку</p><div class="steps"><div class="step"><span class="n">1</span><div><h3>Камера</h3><p>Підтвердити лінзу за реальним монтажем.</p></div></div><div class="step"><span class="n">2</span><div><h3>Локальне аудіо</h3><p>Обрати потрібну постать із 20-файлового каталогу.</p></div></div><div class="step"><span class="n">3</span><div><h3>Маршрут</h3><p>AUX або затверджений Bluetooth; людина натискає «Чую звук».</p></div></div></div></div>
       <div class="card"><p class="card-title">Продовження</p><div class="steps"><div class="step"><span class="n">4</span><div><h3>Гучність</h3><p>Зберегти рівень і перевірити фактичну колонку.</p></div></div><div class="step"><span class="n">5</span><div><h3>Калібрування</h3><p>10 секунд зі стабільною сценою; воно не вмикає датчик.</p></div></div><div class="step"><span class="n">6</span><div><h3>Тест руху</h3><p>Реальний рух, відтворення, завершення й cooldown.</p></div></div></div></div>
     </div>
-    <div class="notice red" style="margin-top:4mm"><span class="badge">!</span><div><h3>PIN належить оператору</h3><p class="small">Інтегратор не записує PIN у PDF, README, checksum або ticket. Не вгадувати й не автоматизувати. Без PIN і завершеного wizard не вмикати автозапуск.</p></div></div>
+    <div class="notice red" style="margin-top:4mm"><span class="badge">!</span><div><h3>PIN належить оператору</h3><p class="small">Не записувати й не автоматизувати PIN. У 1.3.18 після його створення «Відкрити операторський режим» доступний навіть до завершення wizard: спочатку ввійти, потім відкривати Bluetooth. Автозапуск лишається заблокованим до шести перевірок.</p></div></div>
     <div class="notice amber" style="margin-top:3mm"><span class="badge">♫</span><div><h3>ADB не чує звук</h3><p class="small">Назва A2DP/AUX у системі не є доказом чутності. Телефонний динамік ніколи не є запасним виходом.</p></div></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>5/9</span></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>5/9</span></div>
   </section>
 
   <section class="page">
     <p class="eyebrow">05 · cold boot та AUTO_START</p><h2 style="margin-top:3mm">Розрізняти kiosk і датчик</h2>
     <p class="lede">HOME/Lock Task можуть відновитися, навіть якщо detector auto-start заблокований незавершеним wizard. Це різні докази.</p>
     <div class="rule"></div>
-    <div class="steps"><div class="step"><span class="n">1</span><div><h3>До reboot</h3><p>Усі шість перевірок зелені; операторський PIN задано; kiosk та автозапуск увімкнено.</p></div></div><div class="step"><span class="n">2</span><div><h3>Повний reboot</h3><div class="codebox" style="margin-top:2mm"><code>adb -s SERIAL reboot
-adb -s SERIAL wait-for-device</code></div></div></div><div class="step"><span class="n">3</span><div><h3>Після boot</h3><p>Якщо Samsung видно лише як MTP: розблокувати, підтвердити стару USB trust або виконати <code>adb kill-server</code> / <code>adb start-server</code>.</p></div></div></div>
+    <div class="steps"><div class="step"><span class="n">1</span><div><h3>До reboot</h3><p>Усі шість перевірок зелені; операторський PIN задано; kiosk та автозапуск увімкнено.</p></div></div><div class="step"><span class="n">2</span><div><h3>Повний reboot</h3><p>Guarded-скрипт виконує один commissioning reboot після install/update.</p></div></div><div class="step"><span class="n">3</span><div><h3>Після boot</h3><p>Якщо authorized ADB відсутній, скрипт один раз перезапускає лише host ADB. Далі повертає blocker без reset телефона.</p></div></div></div>
     <div class="codebox dark" style="margin-top:4mm"><code>adb -s SERIAL shell dumpsys activity activities
 adb -s SERIAL shell dumpsys activity services ua.alexsnig.exhibitmotion
 adb -s SERIAL shell dumpsys power
 adb -s SERIAL shell dumpsys media.camera
 adb -s SERIAL logcat -d -s MotionDetectorService:V '*:S'</code></div>
     <table class="table" style="margin-top:4mm"><tr><th>Доказ</th><th>Очікування</th></tr><tr><td>HOME</td><td>Exhibit Motion top-resumed</td></tr><tr><td>Lock Task</td><td><code>LOCKED</code></td></tr><tr><td>Service intent</td><td><code>ua.alexsnig.exhibitmotion.action.AUTO_START</code></td></tr><tr><td>Камера / Wake Lock</td><td>активні, кадри прогресують</td></tr></table>
-    <div class="notice amber" style="margin-top:4mm"><span class="badge">!</span><div><h3>Стан R8YL41DLGLR на момент передачі</h3><p class="small">Після reboot HOME і Lock Task збереглися, але <code>AUTO_START</code> ще не доведений: постать, фінальний аудіомаршрут, PIN, калібрування й тест руху залишені відповідальному оператору.</p></div></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>6/9</span></div>
+    <div class="notice amber" style="margin-top:4mm"><span class="badge">!</span><div><h3>Стан R8YL41DLHAY на 13.08.2026</h3><p class="small">1.3.18 встановлено, HOME/Lock Task збережені, операторський вхід знову видимий. <code>AUTO_START</code> ще відкритий: потрібні фінальний BT/AUX, «чути», калібрування, тест руху та локальна дія з PIN.</p></div></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>6/9</span></div>
   </section>
 
   <section class="page">
     <p class="eyebrow">06 · оновлення commissioned телефона</p><h2 style="margin-top:3mm">Ніколи не очищати дані</h2>
-    <p class="lede">Оновлення має бути підписане тим самим ключем і мати унікальний вищий versionCode. Для 1.3.17 це code 22.</p>
+    <p class="lede">Оновлення має бути підписане тим самим ключем і мати унікальний вищий versionCode. Для 1.3.18 це code 23.</p>
     <div class="rule"></div>
-    <div class="grid two"><div class="card"><p class="card-title">Перед записом</p><div class="codebox"><code>adb devices -l
-adb -s SERIAL shell dumpsys package ua.alexsnig.exhibitmotion
-adb -s SERIAL shell dumpsys device_policy
-adb -s SERIAL shell dumpsys activity activities</code></div><p class="tiny" style="margin-top:2mm">Зафіксувати version, firstInstallTime, Device Owner, HOME, Lock Task і service.</p></div><div class="card"><p class="card-title">Оновити</p><div class="codebox"><code>adb -s SERIAL install -r \
-  ExhibitMotion-1.3.17-code22-release.apk</code></div><div class="check" style="margin-top:2mm"><span class="box"></span><span>firstInstallTime не змінився</span></div><div class="check"><span class="box"></span><span>встановлений base.apk має точний hash</span></div><div class="check"><span class="box"></span><span>Device Owner і policies збережені</span></div></div></div>
+    <div class="grid two"><div class="card"><p class="card-title">Перед записом</p><div class="codebox"><code>bash .agents/skills/exhibit-motion-release/scripts/\
+commission-museum-phone.sh --serial SERIAL \
+  --apk ExhibitMotion-1.3.18-code23-release.apk \
+  --preflight-only</code></div><p class="tiny" style="margin-top:2mm">Зафіксувати version, firstInstallTime, Device Owner, HOME, Lock Task і service.</p></div><div class="card"><p class="card-title">Оновити</p><div class="codebox"><code>bash .agents/skills/exhibit-motion-release/scripts/\
+commission-museum-phone.sh --serial SERIAL \
+  --apk ExhibitMotion-1.3.18-code23-release.apk</code></div><div class="check" style="margin-top:2mm"><span class="box"></span><span>firstInstallTime не змінився</span></div><div class="check"><span class="box"></span><span>pulled base.apk має точний hash</span></div><div class="check"><span class="box"></span><span>policies + post-boot OTA збережені</span></div></div></div>
     <div class="notice red" style="margin-top:4mm"><span class="badge">×</span><div><h3>Заборонено під час оновлення</h3><p class="small"><code>adb uninstall</code>, <code>pm clear</code>, remove-active-admin, factory reset, заміна package name або ключа підпису.</p></div></div>
     <div class="notice orange" style="margin-top:3mm"><span class="badge">↻</span><div><h3>Після install -r потрібен reboot</h3><p class="small">Package replacement зупиняє foreground service. Ручний <code>action.START</code> не доводить boot resume; потрібен саме <code>action.AUTO_START</code> після reboot.</p></div></div>
     <div class="card" style="margin-top:4mm"><p class="card-title">Відкат</p><p>Відкат можливий лише до APK з тим самим підписом і сумісними даними. Не знижувати versionCode через випадковий старий файл і не видаляти поточний застосунок для обходу Android. Спочатку зберегти діагностику й погодити процедуру з власником.</p></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>7/9</span></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>7/9</span></div>
   </section>
 
   <section class="page">
@@ -165,7 +159,7 @@ adb -s SERIAL shell dumpsys activity activities</code></div><p class="tiny" styl
     <table class="table"><tr><th>Симптом</th><th>Перевірка</th><th>Безпечна дія</th></tr><tr><td>ADB не бачить після reboot</td><td>USB/MTP, unlock, <code>adb devices -l</code></td><td>Перезапустити host ADB server; не reset телефона</td></tr><tr><td>«Звук недоступний»</td><td>AUX, живлення підсилювача, точний Bluetooth media endpoint</td><td>Повернути схвалений маршрут і повторити audible test</td></tr><tr><td>Є A2DP у dumpsys, але тиша</td><td>Людина слухає фінальну колонку</td><td>Не приймати telemetry як звук; перевірити гучність/endpoint</td></tr><tr><td>Камера не дає кадрів</td><td>Permission, лінза, mount, camera client, Logcat</td><td>Зупинити приймання; не вмикати симуляцію</td></tr><tr><td>Після boot немає service</td><td>Wizard, PIN, auto-start, maintenance, last boot state</td><td>Закрити blockers і повторити reboot; не підміняти action.START</td></tr><tr><td>Не можна вийти з kiosk</td><td>Локальний операторський PIN</td><td>Використати штатний maintenance; не видаляти Device Owner</td></tr><tr><td>Рух не спрацьовує здалеку</td><td>Правильна лінза, поріг, стабільне калібрування</td><td>Повторно калібрувати після підтвердження mount</td></tr><tr><td>Маршрут зник під час роботи</td><td>Статус має стати unavailable</td><td>Підтвердити fail-closed і відсутність звуку телефона</td></tr></table>
     <div class="notice teal" style="margin-top:5mm"><span class="badge">i</span><div><h3>Діагностика без персональних даних</h3><p class="small">Застосунок не ідентифікує відвідувачів і не передає відео в хмару. Для підтримки достатні package/version, serial, Android state, локальний event log і технічний Logcat.</p></div></div>
     <div class="notice amber" style="margin-top:3mm"><span class="badge">!</span><div><h3>Не надсилати клієнту</h3><p class="small">Keystore, паролі, recovery secrets, приватні резерви телефона, сирі QA traces або робочі каталоги source/build.</p></div></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>8/9</span></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>8/9</span></div>
   </section>
 
   <section class="page">
@@ -176,10 +170,10 @@ adb -s SERIAL shell dumpsys activity activities</code></div><p class="tiny" styl
       <div class="card"><p class="card-title">Функціональна перевірка</p><div class="check"><span class="box"></span><span>точний APK/hash/certificate</span></div><div class="check"><span class="box"></span><span>фізично підтверджена лінза й зона</span></div><div class="check"><span class="box"></span><span>рух на 4–5 м, 2 м, 0.5–1 м</span></div><div class="check"><span class="box"></span><span>потрібна постать та фінальний аудіофайл</span></div><div class="check"><span class="box"></span><span>звук чути через дозволений AUX/BT</span></div><div class="check"><span class="box"></span><span>динамік телефона мовчить</span></div></div>
       <div class="card"><p class="card-title">Надійність</p><div class="check"><span class="box"></span><span>два trigger → playback end → cooldown → re-arm</span></div><div class="check"><span class="box"></span><span>route loss/return fail closed</span></div><div class="check"><span class="box"></span><span>screen-off камера й Wake Lock</span></div><div class="check"><span class="box"></span><span>cold boot з action.AUTO_START</span></div><div class="check"><span class="box"></span><span>8 годин, ≥100 triggers</span></div><div class="check"><span class="box"></span><span>≥5 power cycles, charger і температура</span></div></div>
     </div>
-    <div class="notice amber" style="margin-top:4mm"><span class="badge">!</span><div><h3>Відкрито для R8YL41DLGLR</h3><p class="small">Вибір постаті, фінальний AUX/BT, підтвердження «чути», PIN, калібрування, near/far motion, <code>AUTO_START</code> і burn-in. Не переносити acceptance зі старого serial.</p></div></div>
+    <div class="notice amber" style="margin-top:4mm"><span class="badge">!</span><div><h3>Відкрито для R8YL41DLHAY</h3><p class="small">Вибір постаті, фінальний AUX/BT, підтвердження «чути», PIN, калібрування, near/far motion, <code>AUTO_START</code> і burn-in. Не переносити acceptance зі старого serial.</p></div></div>
     <div class="grid two" style="margin-top:5mm"><div><div class="sign">Інтегратор / підпис / дата</div><div class="sign">Відповідальний працівник музею</div></div><div><div class="sign">Serial телефона</div><div class="sign">Аудіомаршрут і назва постаті</div></div></div>
     <div class="card dark" style="margin-top:6mm"><p class="card-title">Підсумок</p><h3>Готово до експлуатації лише тоді, коли кожен пункт має фізичний доказ на фінальному телефоні, кріпленні, зарядці та колонці.</h3></div>
-    <div class="footer"><span>Exhibit Motion 1.3.17 · інтегратор</span><span>9/9</span></div>
+    <div class="footer"><span>Exhibit Motion 1.3.18 · інтегратор</span><span>9/9</span></div>
   </section>
 </body>
 </html>

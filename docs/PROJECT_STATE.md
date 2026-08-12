@@ -5,12 +5,11 @@ Last verified: 2026-08-13
 ## Release
 
 - Current release candidate: `1.3.18`, Android `versionCode 23`.
-- The source checkpoint and final post-checkpoint APK hash are pending the
-  required commit/push/rebuild sequence. The pre-checkpoint signed candidate
-  passed the static release audit with SHA-256
-  `2c09eb920d520244f4d027016b5d5306ef22c152b518d958ec09abe7b97d77b1`;
-  it must not be installed or handed off until the checkpoint rebuild is
-  independently verified.
+- Installed source checkpoint:
+  `bf832d255615ced186e19fe9c79341ef04f87cd6`, pushed to `origin/main`.
+- The exact signed APK was rebuilt from that checkpoint and passed the full
+  release audit, SHA-256:
+  `b240f2432ee3d45c5638b3262d83a3cd9a91da3c2b335b549f0aa60bac1a9ba8`.
 - `1.3.18` restores PIN-gated operator access on a commissioned phone before
   the physical auto-start checklist is complete. This breaks the 1.3.17 setup
   deadlock without relaxing route, calibration, motion-test, or auto-start
@@ -30,16 +29,18 @@ Last verified: 2026-08-13
   `bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e`
   (RSA 4096).
 - Runtime has no `android.permission.INTERNET`.
-- The old client handoff `/home/alex/exhibit-handoff-1.3.17-code22` is retained
-  only as a superseded local package and must not be delivered. A minimal
-  1.3.18 client folder is not yet assembled.
+- Current client handoff:
+  `/home/alex/exhibit-handoff-1.3.18-code23`. It contains exactly the signed
+  APK, current staff PDF, current integrator PDF and `SHA256SUMS.txt`; no
+  signing material, source, QA evidence or phone backup is present.
 - `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
-  SHA-256: `3f867a425664d4b0b0c3137ad235b61ce40cd948d282d44cbe6974d8441709e9`;
+  SHA-256: `52f573880c00509c8a1c5357c9470e2e58fbf634a314e440e4cf472ebbf46d10`;
   integrator PDF SHA-256:
-  `9f5aade5ac55f54b115d77cafbadc805205b654211500f9ba718cb926f8b577d`.
-- The 1.3.17 PDFs are visually valid 9-page A4 files but are not current for
-  1.3.18 handoff. Their sources must be corrected and regenerated before the
-  new client folder is assembled.
+  `326a378c46457badf9b442596473d4bd83fbab1ab2eeefa11284e73d9aa82b8e`.
+- Both delivered PDFs are current 9-page A4 editions dated 2026-08-13. Text
+  extraction and full-page visual review passed; they record 1.3.18/code 23,
+  the exact APK hash/certificate, guarded commissioning, automatic ADB restart,
+  post-boot OTA verification and the corrected PIN-to-Bluetooth workflow.
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
@@ -151,6 +152,22 @@ Last verified: 2026-08-13
   produced «Спочатку відкрийте операторський режим». The PIN value was not
   used, guessed, recorded in the project, or retained; temporary UI diagnostics
   were deleted immediately after the check.
+- The exact signed 1.3.18/code 23 APK was then installed with `adb install -r`.
+  `firstInstallTime=2026-08-12 15:10:13` was preserved and
+  `lastUpdateTime=2026-08-13 00:32:42`; Device Owner, HOME, Lock Task and all
+  three `POLICY_FIXED` runtime permissions remained intact. The pulled
+  installed `base.apk` is byte-identical to the post-checkpoint release,
+  SHA-256 `b240f2432ee3d45c5638b3262d83a3cd9a91da3c2b335b549f0aa60bac1a9ba8`.
+- The guarded workflow performed one update reboot, automatically restarted
+  host ADB when Samsung did not re-enumerate, and re-applied/verified the three
+  OTA package blocks. Its result was
+  `SYSTEM_KIOSK_READY_OPERATOR_WIZARD_PENDING`.
+- Rendered post-reboot evidence on `R8YL41DLHAY` shows the missing action is
+  fixed: with Lock Task still active, PIN configured and the physical checklist
+  incomplete, the panel now displays both «Відкрити операторський режим» and
+  the separately disabled «Увімкнути kiosk і автозапуск». Entering the private
+  PIN and proving the subsequent Bluetooth Settings screen remain local human
+  acceptance steps.
 
 - The previous installation target was Samsung Galaxy A07 serial `R8YL41DLGLR`
   (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
