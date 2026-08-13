@@ -41,6 +41,7 @@ import java.io.FileOutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import ua.alexsnig.exhibitmotion.kiosk.AutoResumeCoordinator
+import ua.alexsnig.exhibitmotion.kiosk.BluetoothSettingsLaunchPolicy
 import ua.alexsnig.exhibitmotion.kiosk.KioskPolicyController
 import ua.alexsnig.exhibitmotion.kiosk.KioskRuntimeState
 
@@ -381,11 +382,17 @@ class MotionDetectorPlugin : Plugin() {
                 )
                 return@launch
             }
+            AutoResumeCoordinator.cancelPendingResumeForMaintenance()
             val opened = withContext(Dispatchers.Main.immediate) {
                 val host = activity ?: return@withContext false
-                if (kiosk.isLockTaskActive) KioskPolicyController.exitLockTask(host)
+                if (kiosk.isLockTaskActive && !KioskPolicyController.exitLockTask(host)) {
+                    return@withContext false
+                }
                 runCatching {
-                    host.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                    host.startActivity(
+                        Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                            .addFlags(BluetoothSettingsLaunchPolicy.INTENT_FLAGS),
+                    )
                     true
                 }.getOrDefault(false)
             }
@@ -459,6 +466,7 @@ class MotionDetectorPlugin : Plugin() {
                 return@launch
             }
             if (!enabled) {
+                AutoResumeCoordinator.cancelPendingResumeForMaintenance()
                 store.setAutoStartEnabled(false, AutoResumeCoordinator.currentBootCount(context))
                 withContext(Dispatchers.Main.immediate) { activity?.let(KioskPolicyController::exitLockTask) }
                 call.resolve(kioskData(KioskPolicyController.state(context)))
@@ -525,6 +533,7 @@ class MotionDetectorPlugin : Plugin() {
                 call.reject(pinFailureMessage(pinCheck.retryAfterMs), "INCORRECT_PIN")
                 return@launch
             }
+            AutoResumeCoordinator.cancelPendingResumeForMaintenance()
             store.setMaintenanceMode(true)
             MotionDetectorService.command(context, MotionDetectorService.ACTION_STOP)
             withContext(Dispatchers.Main.immediate) { activity?.let(KioskPolicyController::exitLockTask) }

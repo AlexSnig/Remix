@@ -5,9 +5,12 @@ import android.content.Context
 import android.provider.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicReference
 import ua.alexsnig.exhibitmotion.detector.DetectorStore
 import ua.alexsnig.exhibitmotion.detector.DetectorRuntimePolicy
 import ua.alexsnig.exhibitmotion.detector.MotionDetectorService
@@ -19,6 +22,16 @@ import ua.alexsnig.exhibitmotion.detector.MotionDetectorService
  */
 object AutoResumeCoordinator {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val visibleResumeJob = AtomicReference<Job?>(null)
+
+    /**
+     * Operator maintenance owns the foreground until the operator explicitly
+     * returns to kiosk. Cancel a boot/visibility job that may otherwise reach
+     * startLockTask after Bluetooth Settings has already opened.
+     */
+    suspend fun cancelPendingResumeForMaintenance() {
+        visibleResumeJob.getAndSet(null)?.cancelAndJoin()
+    }
 
     suspend fun markBootResumePending(context: Context) {
         val store = DetectorStore.get(context)
@@ -32,16 +45,25 @@ object AutoResumeCoordinator {
     }
 
     fun onVisibleMainActivity(activity: Activity) {
-        scope.launch {
+        val job = scope.launch {
             val context = activity.applicationContext
             val store = DetectorStore.get(context)
             val config = store.loadKioskAutoStartState()
             if (!config.enabled || config.maintenanceMode) return@launch
 
             // Lock Task is an Activity operation and is only attempted after
-            // MainActivity has reached onPostResume.
+            // MainActivity has reached onPostResume. Re-read configuration and
+            // require window focus at the last possible moment: an older
+            // visibility job must never relock the task over operator Settings.
+            val latestConfig = store.loadKioskAutoStartState()
             withContext(Dispatchers.Main.immediate) {
-                if (!activity.isFinishing && !activity.isDestroyed) {
+                if (AutoResumePolicy.shouldEnterLockTask(
+                        config = latestConfig,
+                        activityFinishing = activity.isFinishing,
+                        activityDestroyed = activity.isDestroyed,
+                        activityHasWindowFocus = activity.hasWindowFocus(),
+                    )
+                ) {
                     KioskPolicyController.enterLockTask(activity)
                 }
             }
@@ -86,6 +108,7 @@ object AutoResumeCoordinator {
                 }
             }
         }
+        visibleResumeJob.getAndSet(job)?.cancel()
     }
 
     fun currentBootCount(context: Context): Int = runCatching {

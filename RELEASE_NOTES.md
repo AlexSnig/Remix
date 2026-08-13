@@ -1,5 +1,29 @@
 # Release notes
 
+## 1.3.20 — Bluetooth pairing confirmation remains outside Lock Task
+
+- Opens Android Bluetooth Settings in its own task after operator maintenance
+  exits Lock Task, so Samsung can display its separate pairing-confirmation
+  activity instead of rejecting it as a Lock Task policy violation.
+- Cancels any pending visible-activity auto-resume before maintenance and
+  rechecks both the stored maintenance state and MainActivity window focus
+  immediately before entering Lock Task. This prevents a stale resume job from
+  relocking the exhibit over Bluetooth Settings.
+- Keeps Bluetooth Settings maintenance-only and preserves the permanent Device
+  Owner, HOME, Lock Task allowlist, approved-route and handset-speaker safety
+  boundaries.
+- Versioned as Android `versionCode 25`; it must not be distributed as the
+  already-installed 1.3.19/code 24 binary.
+
+### Reproduced incident on 2026-08-13
+
+- On Galaxy A07 `R8YY929PZDA`, Android discovered `ZEALOT-S24` and began SSP
+  `Just Works`, but the pairing confirmation activity was denied with
+  `Attempted Lock Task Mode violation`. Twelve seconds later bonding returned
+  `HCI_ERR_HOST_REJECT_SECURITY`, `hciReason: 14`, leaving zero bonded devices
+  and zero A2DP connections. This evidence distinguishes the kiosk/task bug
+  from speaker discovery and Exhibit Motion audio routing.
+
 ## 1.3.19 — Any media-capable Bluetooth speaker can replace the approved route
 
 - Allows an operator in maintenance mode to connect and test any successfully

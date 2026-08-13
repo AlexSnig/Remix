@@ -20,4 +20,14 @@ class MainActivity : BridgeActivity() {
         super.onPostResume()
         AutoResumeCoordinator.onVisibleMainActivity(this)
     }
+
+    /**
+     * Window focus can arrive after onPostResume on Samsung. Re-evaluating
+     * here lets the final focus guard enter Lock Task without ever relocking a
+     * background MainActivity underneath operator Settings.
+     */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) AutoResumeCoordinator.onVisibleMainActivity(this)
+    }
 }

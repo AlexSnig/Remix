@@ -1,12 +1,55 @@
 package ua.alexsnig.exhibitmotion.kiosk
 
+import android.content.Intent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import ua.alexsnig.exhibitmotion.detector.KioskAutoStartState
 import ua.alexsnig.exhibitmotion.detector.SetupReadiness
 
 class KioskPolicyControllerTest {
+    @Test
+    fun bluetoothSettingsLaunchesOutsideTheAllowlistedKioskTask() {
+        assertTrue(
+            BluetoothSettingsLaunchPolicy.INTENT_FLAGS and Intent.FLAG_ACTIVITY_NEW_TASK != 0,
+        )
+    }
+
+    @Test
+    fun autoResumeDoesNotRelockMaintenanceOrBackgroundActivity() {
+        val enabled = KioskAutoStartState(enabled = true)
+
+        assertFalse(
+            AutoResumePolicy.shouldEnterLockTask(
+                config = enabled.copy(maintenanceMode = true),
+                activityFinishing = false,
+                activityDestroyed = false,
+                activityHasWindowFocus = true,
+            ),
+        )
+        assertFalse(
+            AutoResumePolicy.shouldEnterLockTask(
+                config = enabled,
+                activityFinishing = false,
+                activityDestroyed = false,
+                activityHasWindowFocus = false,
+            ),
+        )
+    }
+
+    @Test
+    fun autoResumeMayLockOnlyFocusedReadyActivity() {
+        assertTrue(
+            AutoResumePolicy.shouldEnterLockTask(
+                config = KioskAutoStartState(enabled = true),
+                activityFinishing = false,
+                activityDestroyed = false,
+                activityHasWindowFocus = true,
+            ),
+        )
+    }
+
     @Test
     fun fullyCommissionedDeviceHasNoBlockers() {
         val blockers = KioskPolicyController.readinessBlockers(
