@@ -48,7 +48,7 @@ this documentation index.
 
 - [Exhibit Motion integrator PDF](integrator-guide/ExhibitMotion_інструкція_для_інтегратора.pdf)
   — guarded installation, Device Owner/HOME/Lock Task, OTA, operator wizard,
-  cold boot, update, recovery, current 1.3.19 target-phone evidence, and the
+  cold boot, update, recovery, current 1.3.20 target-phone evidence, and the
   still-open exhibition burn-in gates.
 - [Integrator-manual source](integrator-guide/exhibit-motion-integrator-manual.html)
   — editable A4 source used to regenerate the PDF.
@@ -59,5 +59,5 @@ this documentation index.
 - Signing keys, passwords, `keystore.properties`, built APKs, client handoff
   packages, screenshots, traces, and diagnostics are never Git content.
 - The current client package is assembled at
-  `/home/alex/exhibit-handoff-1.3.19-code24` outside this repository and
+  `/home/alex/exhibit-handoff-1.3.20-code25` outside this repository and
   verified with its own SHA-256 manifest.

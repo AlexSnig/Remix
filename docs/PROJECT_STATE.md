@@ -4,13 +4,19 @@ Last verified: 2026-08-13
 
 ## Release
 
-- Current release: `1.3.19`, Android `versionCode 24`.
-- Release source checkpoint: `6a06c3a` (`Allow replacing Bluetooth media
-  speakers`), pushed to `origin/main`.
+- Current release: `1.3.20`, Android `versionCode 25`.
+- Release source checkpoint: `96789e2` (`Fix Bluetooth pairing outside Lock
+  Task`), pushed to `origin/main`.
 - The exact signed release APK was rebuilt after that checkpoint and passed the
   full release audit, SHA-256:
-  `f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425`.
-- `1.3.19` lets an operator in maintenance connect and audibly test any
+  `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`.
+- `1.3.20` exits Lock Task before opening Bluetooth Settings, launches Settings
+  in a separate standard task, and suppresses delayed kiosk auto-resume while
+  Settings owns focus. This lets Samsung Android 16 display its separate
+  pairing-confirmation activity instead of rejecting it as a Lock Task policy
+  violation and later returning `AUTH_FAIL 14`.
+- It preserves the `1.3.19` route policy: an operator in maintenance can connect
+  and audibly test any
   successfully paired A2DP/BLE media speaker, even when a different Bluetooth
   name was approved before. Confirmation replaces the stored route; outside
   maintenance, unattended playback still accepts only the last heard and
@@ -36,16 +42,16 @@ Last verified: 2026-08-13
   (RSA 4096).
 - Runtime has no `android.permission.INTERNET`.
 - Current client handoff:
-  `/home/alex/exhibit-handoff-1.3.19-code24`. It contains exactly the signed
+  `/home/alex/exhibit-handoff-1.3.20-code25`. It contains exactly the signed
   APK, current staff PDF, current integrator PDF and `SHA256SUMS.txt`; no
   signing material, source, QA evidence or phone backup is present.
 - `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
-  SHA-256: `e51734385425b3010743ffe290ea2ead008f1def9dd3cecbf2d99321163bdd2f`;
+  SHA-256: `b33986c591220deff0faa975bf4c4e1e6705310dd3b919e3878960c5fa14aeb2`;
   integrator PDF SHA-256:
-  `054372ab85ba94112434d38f3f385066bcbb1d0127614703e33fc101f88edaf8`.
+  `58fda203fff3b4779145970e25655e4d19d6858332b3e12139e48b55611da86d`.
 - Both delivered PDFs are current 9-page A4 editions dated 2026-08-13. Text
   extraction and representative full-page visual review passed; they record
-  1.3.19/code 24, the exact APK hash/certificate, guarded commissioning,
+  1.3.20/code 25, the exact APK hash/certificate, guarded commissioning,
   automatic ADB restart, post-boot OTA verification and the workflow for
   replacing an approved route with any audible A2DP/BLE media speaker. The
   integrator edition now also separates the completed `R8YL41DLHAY`
@@ -54,7 +60,7 @@ Last verified: 2026-08-13
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
-## Automated evidence for 1.3.19
+## Automated evidence for 1.3.20
 
 - `npm run lint`: passed.
 - `npm run test:coverage`: 21/21 passed; 100% lines, 97.02% statements,
@@ -67,18 +73,21 @@ Last verified: 2026-08-13
 - `npx cap sync android`: passed; the packaged Android WebView contains
   `getAudioLibrary` and the Ukrainian catalog selector.
 - `npm run test:e2e`: 6/6 passed with Playwright.
-- Android native unit tests: 28/28 passed. Six route-selection tests cover
+- Android native unit tests: 31/31 passed. Six route-selection tests cover
   same-name SCO/A2DP preference, unverified media selection, SCO-only
   rejection, strict approved-name matching, maintenance replacement with a
   different A2DP name, and continued rejection of call-only replacement.
+  Three new kiosk regressions verify the Bluetooth Settings new-task flag,
+  prevent relocking while maintenance/background owns focus, and preserve
+  focused enabled auto-resume.
 - Android native unit tests, lint, `assembleDebug`, and signed
-  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL` in 9m 10s,
+  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL` in 7m 18s,
   274 actionable tasks).
 - The final signed APK audit passed: v2 signature valid, expected certificate, ZIP/zipalign
   valid, R8 Capacitor annotation descriptor present, not debuggable, no
-  `INTERNET`, package `ua.alexsnig.exhibitmotion`, version 1.3.19/code 24.
+  `INTERNET`, package `ua.alexsnig.exhibitmotion`, version 1.3.20/code 25.
   Its SHA-256 is
-  `f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425`.
+  `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`.
 
 ## Target museum phone
 
@@ -97,7 +106,7 @@ Last verified: 2026-08-13
   classified `commissioned_update`, and one-user/zero-account/no-credential,
   product-lane and existing system-kiosk checks passed. No phone state changed
   during this validation.
-- On 2026-08-13 the same no-argument path resolved the current
+- On 2026-08-13 the same no-argument path resolved the then-current
   `/home/alex/exhibit-handoff-1.3.19-code24` APK and serial `R8YL41DLHAY`
   without overrides. The signed-APK audit and commissioned-update guards
   passed with `RESULT=PREFLIGHT_PASS_NO_DEVICE_CHANGES`. This proves that the
@@ -128,7 +137,7 @@ Last verified: 2026-08-13
   No service/`action.AUTO_START` runs until the physical route/audibility,
   calibration, motion test and private operator PIN are completed locally.
 - On 2026-08-13 the no-argument guarded lane resolved `R8YY929PZDA` and the
-  current `/home/alex/exhibit-handoff-1.3.19-code24` release without overrides.
+  then-current `/home/alex/exhibit-handoff-1.3.19-code24` release without overrides.
   Because the phone was already commissioned, it correctly selected
   `commissioned_update`; the one-user, zero-account, no-credential, Device
   Owner and product-lane guards passed before installation.
@@ -149,6 +158,51 @@ Last verified: 2026-08-13
   operator PIN and auto-start must be completed locally for this serial.
   Evidence is at
   `/tmp/exhibit-motion-commission-R8YY929PZDA-20260813T134541`.
+
+- On 2026-08-13 the guarded commissioned-update lane installed the signed
+  1.3.20/code 25 release on `R8YY929PZDA` with `adb install -r` and one reboot.
+  `firstInstallTime=2026-08-12 15:41:06` was preserved,
+  `lastUpdateTime=2026-08-13 19:31:38`, and the pulled installed `base.apk` is
+  byte-identical to the release APK, SHA-256
+  `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`.
+- The commissioned-update guards again proved one owner user, zero accounts,
+  no Android lock credential, the existing Exhibit Motion Device Owner, and
+  the correct `SM-A075F` product lane. Post-boot evidence preserved persistent
+  HOME, Lock Task `LOCKED`, Camera/Notifications/Bluetooth as granted and
+  `POLICY_FIXED`, and all Samsung OTA blocks. The script returned
+  `SYSTEM_KIOSK_READY_OPERATOR_WIZARD_PENDING`; evidence is at
+  `/tmp/exhibit-motion-commission-R8YY929PZDA-20260813T193136`.
+- Before that update, repeated `ZEALOT-S24` attempts on 1.3.19 reproduced the
+  real pairing defect. Android discovered the speaker and began SSP
+  `Just Works`, but tried to open
+  `com.android.settings/.bluetooth.BluetoothPairingDialog` inside the
+  allowlisted Exhibit Motion task. ActivityTaskManager logged
+  `Attempted Lock Task Mode violation`; about twelve seconds later bonding
+  ended with `HCI_ERR_HOST_REJECT_SECURITY`, `hciReason: 14`, zero bonds and
+  zero A2DP endpoints. The app did not crash.
+- With 1.3.20, Bluetooth Settings opened as its own standard task (`t7`) with
+  `FLAG_ACTIVITY_NEW_TASK`, while Exhibit Motion remained HOME task `t6` and
+  `mLockTaskModeState=NONE`. No immediate relock or new pairing-dialog Lock
+  Task violation occurred. Android then stored exactly one bond for
+  `ZEALOT-S24`; its `AudioSink` profile was `Connected` and `Active` for A2DP,
+  and media used `bt_a2dp` (`0x80`).
+- Returning to Exhibit Motion preserved operator maintenance. The panel showed
+  `ZEALOT-S24`, started a `USAGE_MEDIA` / `CONTENT_TYPE_SPEECH` AudioTrack on
+  the Bluetooth output, and later displayed **«Маршрут перевірено»** with the
+  route and 100% volume stored. The selected narration shown on this phone is
+  `Володимир_Великий_…mp3`. The UI state proves app route approval, while a
+  separately stated human audible result is not inferred from ADB telemetry.
+- Calibration, a serial-specific real motion test, enabling auto-start with the
+  private operator PIN, a cold reboot proving `action.AUTO_START`, screen-off
+  playback and burn-in remain open on `R8YY929PZDA`. The operator PIN was not
+  read, guessed or automated.
+- After assembling `/home/alex/exhibit-handoff-1.3.20-code25`, a no-argument
+  `--preflight-only` run automatically resolved that exact APK and independently
+  passed its signed-artifact audit plus the phone's commissioned-update guards.
+  It then correctly stopped with `BLOCKED: Lock Task is not active`, because
+  Bluetooth operator maintenance was still open for the human audio check.
+  This proves current-artifact discovery; it does not claim a completed kiosk
+  preflight until the operator closes maintenance with the private PIN.
 
 - The physically accepted target from the preceding run is Samsung Galaxy A07 serial `R8YL41DLHAY`
   (`SM-A075F`), Android 16 / API 36. On 2026-08-12 the guarded preflight proved
@@ -386,14 +440,18 @@ Last verified: 2026-08-13
 
 ## Open production gates
 
-Release 1.3.19 has **target-phone core commissioning and cold-boot evidence**
-on `R8YL41DLHAY`, but it is not yet final exhibition acceptance.
+Release 1.3.20 has **signed-artifact, guarded update and Bluetooth
+pairing/A2DP/app-route evidence** on `R8YY929PZDA`. The preceding 1.3.19 release
+has core commissioning and cold-boot evidence on `R8YL41DLHAY`. Neither is yet
+final exhibition acceptance for a new serial.
 
-1. `R8YY929PZDA` now runs the exact 1.3.19/code 24 release but still needs its
-   own operator wizard, physical route, calibration, motion and
-   `action.AUTO_START` evidence. `R8YL41DLGLR` needs the same if it remains a
-   deployment target. Acceptance from `R8YL41DLHAY` cannot be copied to either
-   serial.
+1. `R8YY929PZDA` now runs the exact 1.3.20/code 25 release. Android bonding,
+   active A2DP, test AudioTrack and the stored `ZEALOT-S24` approved-route UI
+   are proven. Record the operator's separate audible statement, then complete
+   calibration, a real motion/playback test, PIN-gated auto-start enable and a
+   cold reboot with `action.AUTO_START`. `R8YL41DLGLR` needs its own full
+   physical workflow if it remains a deployment target. Acceptance from
+   `R8YL41DLHAY` cannot be copied to either serial.
 2. On `R8YL41DLHAY`, formally confirm the mounted lens and visitor zone, then
    record near/far samples at approximately 4–5 m, 2 m and 0.5–1 m. Prove that
    intended visitor movement triggers without treating whole-frame light

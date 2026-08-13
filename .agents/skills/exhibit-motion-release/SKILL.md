@@ -116,6 +116,14 @@ qualify. Android pairing authentication is still owned by the speaker and
 system Settings; do not work around `AUTH_FAIL` by clearing app data or
 weakening kiosk policy.
 
+Starting with 1.3.20, Bluetooth Settings must open in a separate standard task
+after Exhibit Motion exits Lock Task. If a discovered Samsung/Android 16 device
+ends with `AUTH_FAIL 14`, check `dumpsys activity activities` and Logcat before
+blaming the speaker: Settings must be separate from the Exhibit Motion HOME
+task, `mLockTaskModeState` must stay `NONE` while Settings has focus, and no
+`Attempted Lock Task Mode violation` may accompany the pairing dialog. Never
+repair this by clearing data, uninstalling, or removing Device Owner.
+
 Choose the final narration before accepting the route. Selecting or importing
 another narration intentionally clears the stored route approval and motion
 test, so repeat **«Чую звук»** and the real motion test after every audio change.

@@ -188,7 +188,7 @@ adb -s SERIAL shell dpm set-device-owner \
   ua.alexsnig.exhibitmotion/.kiosk.ExhibitDeviceAdminReceiver
 ```
 
-Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.19
+Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.20
 shows this whenever either HOME or Lock Task policy is missing; do not apply the
 obsolete stock-launcher workaround from earlier releases. Then verify Device
 Owner type `0`, Lock Task policy, permissions, persistent HOME, and disabled OTA
@@ -213,7 +213,7 @@ Then close operator maintenance with the existing PIN, enable kiosk/autostart,
 reboot, and repeat a motion trigger with the screen off.
 
 If Lock Task is already active while the first operator wizard is incomplete,
-1.3.19 still exposes the PIN-gated **«Відкрити операторський режим»** action.
+1.3.20 still exposes the PIN-gated **«Відкрити операторський режим»** action.
 Use it before **«Підключити або змінити Bluetooth-колонку»**. The Bluetooth action must stay
 maintenance-only, while the auto-start action must remain blocked until the
 physical readiness checklist passes.
@@ -223,6 +223,27 @@ for the route test. A person must hear it and tap **«Чую звук»**; that 
 confirmation replaces the previously stored Bluetooth route. Outside
 maintenance the runtime remains pinned to the last audible-approved speaker,
 and a different output forces a new test instead of silently playing.
+
+Starting with 1.3.20, the Bluetooth action exits Lock Task and opens Android
+Bluetooth Settings in a separate task. This separation is required on Samsung
+Android 16 because the system pairing-confirmation activity can otherwise be
+rejected as an `Attempted Lock Task Mode violation`, followed by
+`AUTH_FAIL 14`. While Settings has focus and operator maintenance remains
+active, Exhibit Motion must not automatically re-enter Lock Task. Returning to
+the app and closing maintenance restores the normal kiosk boundary.
+
+When pairing fails, distinguish these states before changing anything:
+
+- a visible device name is discovery only;
+- `Bonded devices: 1` proves Android stored the bond;
+- A2DP/BLE media `Connected` and `Active` prove a media endpoint;
+- Exhibit Motion route-test playback proves an Android audio path;
+- only the person beside the final speaker can prove audible sound.
+
+Do not clear Bluetooth/app data, remove Device Owner, or uninstall the app to
+work around pairing. On 1.3.20, first verify that Bluetooth Settings is a
+separate task, `mLockTaskModeState=NONE` during maintenance, and no new Lock
+Task violation appears in Logcat.
 
 Safety invariants:
 

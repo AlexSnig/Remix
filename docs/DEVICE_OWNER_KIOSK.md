@@ -135,7 +135,7 @@ After this the app is a protected package and `am force-stop` on it is ignored.
 ### 2. Apply HOME and Lock Task policy in the current panel
 
 `dpm set-device-owner` over ADB does **not** run `applyDeviceOwnerPolicies`.
-Open Exhibit Motion after provisioning. In current 1.3.19 the
+Open Exhibit Motion after provisioning. In current 1.3.20 the
 **«Налаштувати Home і Lock Task»** button appears whenever either HOME or Lock
 Task policy is missing. It needs no operator PIN. Pressing it applies the
 persistent HOME preference, Lock Task allowlist, keyguard policy and fixed
@@ -149,7 +149,7 @@ the same checks on another phone or Android release.
 
 Earlier builds hid this button when the app was already HOME but Lock Task was
 unset, and required temporarily handing HOME to Samsung Launcher. That
-workaround is obsolete. Do not use it on 1.3.19; if the button is absent,
+workaround is obsolete. Do not use it on 1.3.20; if the button is absent,
 verify the installed package/version and record the discrepancy instead.
 
 Verify — **note the field name**:
@@ -215,7 +215,7 @@ accept only the pre-reboot package state as evidence.
    amber blocker list directly above it names the reason verbatim.
 
 On a phone where system Lock Task was applied before the wizard is complete,
-1.3.19 keeps **«Відкрити операторський режим»** visible as soon as an operator
+1.3.20 keeps **«Відкрити операторський режим»** visible as soon as an operator
 PIN exists. Enter that PIN before opening Android Bluetooth Settings. The
 auto-start button remains independently disabled until route, calibration and
 motion evidence are complete. 1.3.17 hid maintenance in this exact state and
@@ -229,6 +229,23 @@ the previous Bluetooth approval. SCO/call-only devices and non-media Bluetooth
 accessories remain invalid; Android `AUTH_FAIL` means the speaker pairing mode
 or its existing connection must be fixed physically, not by removing Device
 Owner or clearing app data.
+
+On Samsung Android 16, also inspect the task boundary when a discovered
+speaker repeatedly ends with `AUTH_FAIL 14`. Release 1.3.19 could launch
+Bluetooth Settings inside the allowlisted Exhibit Motion task; Android then
+rejected its separate `BluetoothPairingDialog` with
+`Attempted Lock Task Mode violation` and the bond timed out. Release 1.3.20
+exits Lock Task, cancels any pending kiosk auto-resume, and launches Settings
+with `FLAG_ACTIVITY_NEW_TASK`. During pairing, verify that Settings owns a
+separate standard task, `mLockTaskModeState=NONE`, and no new violation is
+logged. This check comes before assuming a physical speaker fault.
+
+The fixed path was exercised on `R8YY929PZDA` on 2026-08-13: `ZEALOT-S24`
+became the sole bonded device, A2DP reported it `Connected` and `Active`, and
+Android routed media to `bt_a2dp`. Exhibit Motion then played a `USAGE_MEDIA`
+test on that endpoint and displayed **«Маршрут перевірено»**. This is
+serial-scoped system/app evidence; a human statement that the sound was heard
+is still recorded separately.
 
 ### 5. Verify the kiosk before rebooting
 
@@ -269,7 +286,7 @@ attempt succeeded about a second later. The likely conflicting client is the
 Samsung camera app. It self-recovered, but watch `cameraRestarts` in
 diagnostics across boots.
 
-On 2026-08-13 serial `R8YL41DLHAY` provided the current 1.3.19 reference: after
+On 2026-08-13 serial `R8YL41DLHAY` provided the accepted 1.3.19 reference: after
 the operator completed the wizard and approved `SPB-010`, boot count advanced
 from 4 to 5; HOME and Lock Task returned, the foreground service carried
 `action.AUTO_START`, camera id 1 and the partial Wake Lock were active, and

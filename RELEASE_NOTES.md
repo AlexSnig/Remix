@@ -24,6 +24,18 @@
   and zero A2DP connections. This evidence distinguishes the kiosk/task bug
   from speaker discovery and Exhibit Motion audio routing.
 
+### Verified fix on the same phone
+
+- The signed 1.3.20/code 25 APK was installed on `R8YY929PZDA` with the guarded
+  commissioned-update lane and one reboot. Its installed `base.apk` is
+  byte-identical to the release artifact.
+- Bluetooth Settings then opened as a separate standard task with
+  `FLAG_ACTIVITY_NEW_TASK` while Lock Task remained `NONE`; Android no longer
+  logged a Lock Task violation for the pairing confirmation.
+- `ZEALOT-S24` became bonded and active for A2DP. Exhibit Motion started its
+  `USAGE_MEDIA` route test on the Bluetooth output and the native panel stored
+  the route as verified. Human audibility remains a separately reported fact.
+
 ## 1.3.19 — Any media-capable Bluetooth speaker can replace the approved route
 
 - Allows an operator in maintenance mode to connect and test any successfully
