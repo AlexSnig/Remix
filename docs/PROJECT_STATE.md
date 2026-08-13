@@ -4,13 +4,12 @@ Last verified: 2026-08-13
 
 ## Release
 
-- Current release candidate: `1.3.19`, Android `versionCode 24`.
-- The source checkpoint and exact post-checkpoint APK hash are pending the
-  final reviewed commit. The currently installed 1.3.18 checkpoint remains:
-  `bf832d255615ced186e19fe9c79341ef04f87cd6`, pushed to `origin/main`.
-- The exact installed 1.3.18 APK was rebuilt from that checkpoint and passed the full
-  release audit, SHA-256:
-  `b240f2432ee3d45c5638b3262d83a3cd9a91da3c2b335b549f0aa60bac1a9ba8`.
+- Current release: `1.3.19`, Android `versionCode 24`.
+- Release source checkpoint: `6a06c3a` (`Allow replacing Bluetooth media
+  speakers`), pushed to `origin/main`.
+- The exact signed release APK was rebuilt after that checkpoint and passed the
+  full release audit, SHA-256:
+  `f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425`.
 - `1.3.19` lets an operator in maintenance connect and audibly test any
   successfully paired A2DP/BLE media speaker, even when a different Bluetooth
   name was approved before. Confirmation replaces the stored route; outside
@@ -37,17 +36,18 @@ Last verified: 2026-08-13
   (RSA 4096).
 - Runtime has no `android.permission.INTERNET`.
 - Current client handoff:
-  `/home/alex/exhibit-handoff-1.3.18-code23`. It contains exactly the signed
+  `/home/alex/exhibit-handoff-1.3.19-code24`. It contains exactly the signed
   APK, current staff PDF, current integrator PDF and `SHA256SUMS.txt`; no
   signing material, source, QA evidence or phone backup is present.
 - `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
-  SHA-256: `52f573880c00509c8a1c5357c9470e2e58fbf634a314e440e4cf472ebbf46d10`;
+  SHA-256: `e51734385425b3010743ffe290ea2ead008f1def9dd3cecbf2d99321163bdd2f`;
   integrator PDF SHA-256:
-  `326a378c46457badf9b442596473d4bd83fbab1ab2eeefa11284e73d9aa82b8e`.
+  `ef1eed9c7884569955e79c3b507b1811f665516636c149a10803efe2ad503cdf`.
 - Both delivered PDFs are current 9-page A4 editions dated 2026-08-13. Text
-  extraction and full-page visual review passed; they record 1.3.18/code 23,
-  the exact APK hash/certificate, guarded commissioning, automatic ADB restart,
-  post-boot OTA verification and the corrected PIN-to-Bluetooth workflow.
+  extraction and representative full-page visual review passed; they record
+  1.3.19/code 24, the exact APK hash/certificate, guarded commissioning,
+  automatic ADB restart, post-boot OTA verification and the workflow for
+  replacing an approved route with any audible A2DP/BLE media speaker.
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
@@ -71,11 +71,11 @@ Last verified: 2026-08-13
 - Android native unit tests, lint, `assembleDebug`, and signed
   `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL` in 9m 10s,
   274 actionable tasks).
-- The pre-checkpoint signed APK audit passed: v2 signature valid, expected certificate, ZIP/zipalign
+- The final signed APK audit passed: v2 signature valid, expected certificate, ZIP/zipalign
   valid, R8 Capacitor annotation descriptor present, not debuggable, no
   `INTERNET`, package `ua.alexsnig.exhibitmotion`, version 1.3.19/code 24.
-  The post-checkpoint rebuild and exact final hash remain required before
-  phone installation or handoff.
+  Its SHA-256 is
+  `f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425`.
 
 ## Target museum phone
 
@@ -177,6 +177,30 @@ Last verified: 2026-08-13
   the separately disabled «Увімкнути kiosk і автозапуск». Entering the private
   PIN and proving the subsequent Bluetooth Settings screen remain local human
   acceptance steps.
+- On 2026-08-13 the guarded commissioned-update lane installed the exact signed
+  1.3.19/code 24 release with `adb install -r`. `firstInstallTime` remained
+  `2026-08-12 15:10:13`, `lastUpdateTime` is `2026-08-13 11:10:30`, and the
+  pulled installed `base.apk` is byte-identical to the final release, SHA-256
+  `f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425`.
+- The authorized update reboot preserved Device Owner type 0, Exhibit Motion as
+  persistent and top-resumed HOME, Lock Task `LOCKED`, and Camera,
+  Notifications and Bluetooth as granted with `POLICY_FIXED`. The guarded
+  workflow restarted only the host ADB server when the phone did not
+  re-enumerate, reapplied the OTA blocks, and returned
+  `SYSTEM_KIOSK_READY_OPERATOR_WIZARD_PENDING`. Serial-scoped evidence is at
+  `/tmp/exhibit-motion-commission-R8YL41DLHAY-20260813T111027`.
+- Rendered real-phone evidence shows the 1.3.19 action «Підключити або змінити
+  Bluetooth-колонку» and its explicit support for any A2DP/BLE media speaker.
+  At capture time AUX was physically connected and therefore correctly had
+  priority over Bluetooth. The previous S207U and ZEALOT-S24 attempts ended in
+  Android `AUTH_FAIL 14` before a bond was created; this is pairing-layer
+  evidence, not an Exhibit Motion crash or route rejection.
+- Final Bluetooth acceptance on this serial remains physical: unplug AUX, put
+  the intended speaker into pairing mode, disconnect it from other phones,
+  pair it in Android Settings, run the route test, and confirm «Чую звук».
+  Only that audible confirmation stores the new approved speaker. The PIN,
+  narration/figure, calibration, near/far motion, `action.AUTO_START` and
+  burn-in remain operator-owned open gates.
 
 - The previous installation target was Samsung Galaxy A07 serial `R8YL41DLGLR`
   (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
