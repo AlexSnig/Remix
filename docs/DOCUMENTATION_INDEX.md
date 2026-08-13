@@ -48,7 +48,8 @@ this documentation index.
 
 - [Exhibit Motion integrator PDF](integrator-guide/ExhibitMotion_інструкція_для_інтегратора.pdf)
   — guarded installation, Device Owner/HOME/Lock Task, OTA, operator wizard,
-  cold boot, update, recovery, and physical acceptance for 1.3.19/code 24.
+  cold boot, update, recovery, current 1.3.19 target-phone evidence, and the
+  still-open exhibition burn-in gates.
 - [Integrator-manual source](integrator-guide/exhibit-motion-integrator-manual.html)
   — editable A4 source used to regenerate the PDF.
 

@@ -70,6 +70,10 @@ serial is not ready. Retry discovery once before returning a blocker. On
 `device` immediately after this restart, without any phone-state change or
 additional USB-dialog action.
 
+The same one-time host recovery restored `R8YL41DLHAY` after its accepted
+1.3.19 cold reboot on 2026-08-13 when Samsung first returned only as USB/MTP.
+Do not issue a second phone reboot merely because ADB has not re-enumerated.
+
 ## Preferred agent command
 
 The user has granted standing authorization for the guarded Exhibit Motion
@@ -203,6 +207,9 @@ accept only the pre-reboot package state as evidence.
    import remains available for an approved master that is not in the catalog;
    push it with `adb -s SERIAL push narration.mp3 /sdcard/Download/`, then
    import through the wizard so it is copied into app-private storage.
+   Selecting or importing audio clears the prior route and motion-test
+   evidence by design; make the final audio choice before repeating those
+   checks.
 4. When all six checks are green, enter the PIN and tap
    **«Увімкнути kiosk і автозапуск»**. If the button stays greyed out, the
    amber blocker list directly above it names the reason verbatim.
@@ -261,6 +268,15 @@ reconnect was DENIED with `Too many cameras already open`, before the next
 attempt succeeded about a second later. The likely conflicting client is the
 Samsung camera app. It self-recovered, but watch `cameraRestarts` in
 diagnostics across boots.
+
+On 2026-08-13 serial `R8YL41DLHAY` provided the current 1.3.19 reference: after
+the operator completed the wizard and approved `SPB-010`, boot count advanced
+from 4 to 5; HOME and Lock Task returned, the foreground service carried
+`action.AUTO_START`, camera id 1 and the partial Wake Lock were active, and
+`SPB-010` returned as the default A2DP output. Three playback cycles reached
+playback end and cooldown re-arm. With the display off, `Dozing`, CameraX and
+the Wake Lock remained active; a separately heard screen-off trigger and the
+full burn-in remain open. This evidence belongs only to that serial.
 
 ## What a reboot does
 

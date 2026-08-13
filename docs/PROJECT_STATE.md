@@ -42,12 +42,15 @@ Last verified: 2026-08-13
 - `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
   SHA-256: `e51734385425b3010743ffe290ea2ead008f1def9dd3cecbf2d99321163bdd2f`;
   integrator PDF SHA-256:
-  `ef1eed9c7884569955e79c3b507b1811f665516636c149a10803efe2ad503cdf`.
+  `054372ab85ba94112434d38f3f385066bcbb1d0127614703e33fc101f88edaf8`.
 - Both delivered PDFs are current 9-page A4 editions dated 2026-08-13. Text
   extraction and representative full-page visual review passed; they record
   1.3.19/code 24, the exact APK hash/certificate, guarded commissioning,
   automatic ADB restart, post-boot OTA verification and the workflow for
-  replacing an approved route with any audible A2DP/BLE media speaker.
+  replacing an approved route with any audible A2DP/BLE media speaker. The
+  integrator edition now also separates the completed `R8YL41DLHAY`
+  `SPB-010`/wizard/cold-boot gates from the still-open screen-off and burn-in
+  acceptance work.
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
@@ -94,6 +97,12 @@ Last verified: 2026-08-13
   classified `commissioned_update`, and one-user/zero-account/no-credential,
   product-lane and existing system-kiosk checks passed. No phone state changed
   during this validation.
+- On 2026-08-13 the same no-argument path resolved the current
+  `/home/alex/exhibit-handoff-1.3.19-code24` APK and serial `R8YL41DLHAY`
+  without overrides. The signed-APK audit and commissioned-update guards
+  passed with `RESULT=PREFLIGHT_PASS_NO_DEVICE_CHANGES`. This proves that the
+  checked-in workflow finds the current delivery artifact for the next
+  guarded phone run; a new serial must still pass its own fresh-phone guards.
 
 - The most recently fresh-commissioned target is Samsung Galaxy A07 serial `R8YY929PZDA`
   (`SM-A075F`), Android 16 / API 36. Its initial ADB state was `unauthorized`;
@@ -140,11 +149,12 @@ Last verified: 2026-08-13
   disabled package list and `ota_disable_automatic_update=1`. The guarded
   script was corrected to perform and verify that post-boot reapplication on
   future phones.
-- No `MotionDetectorService`, Wake Lock, active Exhibit Motion camera or
-  `action.AUTO_START` is present on `R8YL41DLHAY`, because the physical operator
-  wizard, approved route/audibility, calibration, motion test and private PIN
-  are intentionally not automated. The Android system kiosk is commissioned;
-  unattended detector acceptance remains open.
+- At that initial 1.3.17 commissioning checkpoint no `MotionDetectorService`,
+  Wake Lock, active Exhibit Motion camera or `action.AUTO_START` was present on
+  `R8YL41DLHAY`, because the physical operator wizard, approved
+  route/audibility, calibration, motion test and private PIN are intentionally
+  not automated. Later 1.3.19 physical and cold-boot evidence is recorded
+  below; this historical fail-closed state is retained for traceability.
 - A rendered screenshot after boot confirmed the native Ukrainian operator
   screen: camera access is granted, the bundled-catalog selector is visible,
   no narration is selected, and the route test explicitly reports
@@ -195,12 +205,35 @@ Last verified: 2026-08-13
   priority over Bluetooth. The previous S207U and ZEALOT-S24 attempts ended in
   Android `AUTH_FAIL 14` before a bond was created; this is pairing-layer
   evidence, not an Exhibit Motion crash or route rejection.
-- Final Bluetooth acceptance on this serial remains physical: unplug AUX, put
-  the intended speaker into pairing mode, disconnect it from other phones,
-  pair it in Android Settings, run the route test, and confirm «Чую звук».
-  Only that audible confirmation stores the new approved speaker. The PIN,
-  narration/figure, calibration, near/far motion, `action.AUTO_START` and
-  burn-in remain operator-owned open gates.
+- Later on 2026-08-13 the operator paired `SPB-010` successfully and physically
+  confirmed hearing the route test. Android then reported exactly one bonded
+  device, `SPB-010` connected and active as A2DP, with media default device
+  `0x80` (`bt_a2dp`) and no active AUX route. The native panel stored
+  «Маршрут перевірено»; this supersedes the earlier `AUTH_FAIL 14` attempts.
+- The current operator-selected narration is `Роман Шухевич.mp3`. After that
+  final selection the operator repeated the audible route approval and motion
+  test. The native panel showed camera permission, local audio, route, saved
+  volume, calibration and «Рух і відтворення підтверджено» all complete. The
+  operator reported that sound was audible and the real motion trigger worked;
+  the private PIN was neither read, guessed nor recorded.
+- A cold reboot advanced Android `boot_count` from 4 to 5. Samsung first
+  returned only as USB/MTP; one host-only `adb kill-server` / `adb start-server`
+  restored the same authorized serial without a second phone reboot. Exhibit
+  Motion returned as top-resumed HOME with Lock Task `LOCKED`, and
+  `MotionDetectorService` was foreground under the exact intent
+  `ua.alexsnig.exhibitmotion.action.AUTO_START`.
+- Post-boot runtime held the partial Wake Lock
+  `ua.alexsnig.exhibitmotion:motion-detector`, kept CameraX camera id 1 active,
+  and restored `SPB-010` as bonded, active and default A2DP. Three observed
+  playback cycles reached playback end and automatic cooldown re-arm. The
+  final check found no Exhibit Motion fatal, ANR, CameraX or service error;
+  the phone was USB-powered at 100% and 29.5 °C, and all three Samsung OTA
+  packages plus `ota_disable_automatic_update=1` remained enforced.
+- With the display then off, Android reported `Dozing` while the same Wake Lock
+  and camera id 1 remained active. No additional trigger occurred during that
+  short screen-off observation because samples stayed below the saved 10%
+  threshold, so a separately heard screen-off trigger remains an open physical
+  gate rather than an inferred pass.
 
 - The previous installation target was Samsung Galaxy A07 serial `R8YL41DLGLR`
   (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
@@ -331,25 +364,25 @@ Last verified: 2026-08-13
 
 ## Open production gates
 
-The current status is **RELEASE CANDIDATE**, not final exhibition acceptance.
+Release 1.3.19 has **target-phone core commissioning and cold-boot evidence**
+on `R8YL41DLHAY`, but it is not yet final exhibition acceptance.
 
-1. On `R8YY929PZDA` (and separately on `R8YL41DLHAY`/`R8YL41DLGLR` if those
-   phones remain in deployment), complete the operator wizard locally: confirm the mounted
-   camera, select the intended narration, connect the final approved route,
-   physically confirm audibility, save volume, calibrate, run the motion test,
-   and enter the operator-owned PIN. Then cold-reboot, perform a Samsung first
-   unlock if the handset requests it, and prove `action.AUTO_START`. Do not
-   disclose, guess, or automate the PIN.
-2. Record near/far samples at approximately 4–5 m, 2 m, and 0.5–1 m and prove
-   that intended visitor movement triggers without treating whole-frame light
+1. `R8YY929PZDA` and `R8YL41DLGLR` still need their own operator wizard,
+   physical route, calibration, motion and `action.AUTO_START` evidence if they
+   remain deployment targets. Acceptance from `R8YL41DLHAY` cannot be copied
+   to another serial.
+2. On `R8YL41DLHAY`, formally confirm the mounted lens and visitor zone, then
+   record near/far samples at approximately 4–5 m, 2 m and 0.5–1 m. Prove that
+   intended visitor movement triggers without treating whole-frame light
    changes as motion.
-3. Physically hear the intended selected narration through the final approved
-   AUX or Bluetooth speaker, then prove playback end, cooldown, and automatic
-   re-arm at least twice with the screen off. Verify that the handset speaker
-   remains silent.
-4. Run the documented 8-hour acceptance test with charging, heat observation,
-   at least 100 triggers, route loss/return, permission recovery, and at least
-   five full power cycles.
+3. Produce one separately witnessed screen-off trigger through `SPB-010`, then
+   prove playback end, cooldown and re-arm while the display remains off.
+   Exercise route loss/return and a different Bluetooth device, confirming
+   fail-closed behavior and that the handset speaker stays silent.
+4. Run the documented 8-hour acceptance test on the final mount and charger:
+   at least 100 triggers, permission loss/recovery, camera contention/recovery,
+   app switching/kiosk return, heat observation and at least five complete
+   power-off/power-on cycles. Only one new accepted reboot is recorded here.
 
 Do not guess or brute-force the operator PIN. A person responsible for the
 installation must enter it.

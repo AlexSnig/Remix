@@ -116,6 +116,10 @@ qualify. Android pairing authentication is still owned by the speaker and
 system Settings; do not work around `AUTH_FAIL` by clearing app data or
 weakening kiosk policy.
 
+Choose the final narration before accepting the route. Selecting or importing
+another narration intentionally clears the stored route approval and motion
+test, so repeat **«Чую звук»** and the real motion test after every audio change.
+
 On an already commissioned phone, system Lock Task can be active before the
 operator wizard is complete. Since 1.3.18 the configured PIN must expose
 **«Відкрити операторський режим»** even while auto-start readiness is false;

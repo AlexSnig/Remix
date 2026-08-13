@@ -205,6 +205,10 @@ Follow the six native checks in order:
 5. 10-second calibration on the lens matching the physical mount;
 6. real motion/playback test.
 
+Choose the final narration before steps 3–6. Selecting or importing another
+audio file deliberately invalidates route approval and motion-test evidence;
+repeat the audible route test and real motion test after every audio change.
+
 Then close operator maintenance with the existing PIN, enable kiosk/autostart,
 reboot, and repeat a motion trigger with the screen off.
 

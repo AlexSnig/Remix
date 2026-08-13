@@ -14,6 +14,20 @@
 - Versioned as Android `versionCode 24`; it must not be distributed as the
   already-installed 1.3.18/code 23 binary.
 
+### Target-phone validation on 2026-08-13
+
+- On Galaxy A07 `R8YL41DLHAY`, the exact signed APK matched the handoff
+  artifact and `SPB-010` was stored only after a person heard the route test;
+  Android reported it bonded, active and selected as the A2DP media output.
+- The operator completed the six native checks with the currently selected
+  `Роман Шухевич.mp3` narration. A cold reboot then restored persistent HOME,
+  Lock Task, the foreground detector under `action.AUTO_START`, CameraX camera
+  id 1, the partial Wake Lock and the approved A2DP route.
+- Three post-boot playback cycles reached playback end and automatic cooldown
+  re-arm. A short display-off check retained CameraX and the Wake Lock in
+  `Dozing`; a separately witnessed screen-off trigger, route-loss matrix and
+  the full eight-hour/five-power-cycle burn-in remain open.
+
 ## 1.3.18 — Operator access during initial Bluetooth setup
 
 - Keeps the PIN-gated «Відкрити операторський режим» action available on a
