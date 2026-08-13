@@ -47,6 +47,7 @@ class AudioRouteMonitor(
     fun resolve(
         preferredBluetoothDeviceId: Int?,
         preferredBluetoothDeviceName: String? = null,
+        allowUnapprovedBluetoothMediaOutput: Boolean = false,
     ): AudioRoute {
         val outputs = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).toList()
         val aux = outputs.firstOrNull { it.isAuxOutput() }
@@ -59,13 +60,16 @@ class AudioRouteMonitor(
                 deviceType = output.type,
             )
         }
-        // Device IDs are transient across reboots. Once an operator has
-        // approved a Bluetooth device, never silently fall back to another
-        // paired speaker with the same output type.
+        // Device IDs are transient across reboots. Normal detector operation
+        // therefore remains pinned to the operator-approved name. Maintenance
+        // may deliberately expose another media-capable speaker so the
+        // operator can hear it and replace the approval without clearing app
+        // data or weakening unattended playback.
         val selected = AudioRouteSelectionPolicy.selectBluetoothMediaOutput(
             candidates = bluetooth,
             preferredDeviceId = preferredBluetoothDeviceId,
             preferredDeviceName = preferredBluetoothDeviceName,
+            allowUnapprovedMediaOutput = allowUnapprovedBluetoothMediaOutput,
         )
         return selected?.let { AudioRoute(AudioRouteKind.BLUETOOTH, it.deviceId, it.name) }
             ?: AudioRoute.unavailable()

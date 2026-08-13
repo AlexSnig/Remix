@@ -19,6 +19,7 @@ internal object AudioRouteSelectionPolicy {
         candidates: List<BluetoothAudioCandidate>,
         preferredDeviceId: Int?,
         preferredDeviceName: String?,
+        allowUnapprovedMediaOutput: Boolean = false,
     ): BluetoothAudioCandidate? {
         val mediaOutputs = candidates
             .filter { isBluetoothMediaOutput(it.deviceType) }
@@ -31,7 +32,11 @@ internal object AudioRouteSelectionPolicy {
             mediaOutputs.firstOrNull { it.deviceId == id }
         }
         return if (!preferredDeviceName.isNullOrBlank()) {
-            preferredByName
+            preferredByName ?: if (allowUnapprovedMediaOutput) {
+                preferredById ?: mediaOutputs.firstOrNull()
+            } else {
+                null
+            }
         } else {
             preferredById ?: mediaOutputs.firstOrNull()
         }

@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.3.19 — Any media-capable Bluetooth speaker can replace the approved route
+
+- Allows an operator in maintenance mode to connect and test any successfully
+  paired A2DP or BLE media speaker, even when a different Bluetooth name was
+  approved previously.
+- Makes audible confirmation replace the stored Bluetooth name and transient
+  Android device ID, so changing speaker no longer requires clearing app data.
+- Keeps unattended kiosk playback fail-closed: outside operator maintenance,
+  the detector still accepts only the last speaker a person heard and approved.
+- Continues to reject SCO/call-only devices, the phone speaker, keyboards,
+  watches, and other Bluetooth devices that cannot carry media narration.
+- Versioned as Android `versionCode 24`; it must not be distributed as the
+  already-installed 1.3.18/code 23 binary.
+
 ## 1.3.18 — Operator access during initial Bluetooth setup
 
 - Keeps the PIN-gated «Відкрити операторський режим» action available on a

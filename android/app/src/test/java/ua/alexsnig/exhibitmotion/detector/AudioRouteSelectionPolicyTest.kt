@@ -52,4 +52,29 @@ class AudioRouteSelectionPolicyTest {
 
         assertNull(selected)
     }
+
+    @Test
+    fun `operator replacement may select any connected media speaker`() {
+        val replacement = BluetoothAudioCandidate(40, "ZEALOT-S24", AudioDeviceInfo.TYPE_BLUETOOTH_A2DP)
+        val selected = AudioRouteSelectionPolicy.selectBluetoothMediaOutput(
+            candidates = listOf(sco, replacement),
+            preferredDeviceId = a2dp.deviceId,
+            preferredDeviceName = "S207U",
+            allowUnapprovedMediaOutput = true,
+        )
+
+        assertEquals(replacement, selected)
+    }
+
+    @Test
+    fun `operator replacement still rejects call-only Bluetooth`() {
+        val selected = AudioRouteSelectionPolicy.selectBluetoothMediaOutput(
+            candidates = listOf(sco),
+            preferredDeviceId = a2dp.deviceId,
+            preferredDeviceName = "S207U",
+            allowUnapprovedMediaOutput = true,
+        )
+
+        assertNull(selected)
+    }
 }

@@ -106,8 +106,18 @@ Do not arm when AUX or the approved Bluetooth route is absent. Never approve a
 route from ADB: a person must hear the intended speaker. Do not guess or brute
 force the operator PIN.
 
+Starting with 1.3.19, operator maintenance may expose any successfully paired
+A2DP or BLE media speaker for a new audible route test, even when another
+Bluetooth name was approved before. **«Чую звук»** replaces the stored
+approval; cancel or silence does not. Outside maintenance the detector remains
+pinned to the last audible-approved speaker and must fail closed on a different
+route. SCO/call-only devices, watches, keyboards and the handset speaker never
+qualify. Android pairing authentication is still owned by the speaker and
+system Settings; do not work around `AUTH_FAIL` by clearing app data or
+weakening kiosk policy.
+
 On an already commissioned phone, system Lock Task can be active before the
-operator wizard is complete. In 1.3.18 the configured PIN must expose
+operator wizard is complete. Since 1.3.18 the configured PIN must expose
 **«Відкрити операторський режим»** even while auto-start readiness is false;
 Bluetooth Settings remains maintenance-only. If Bluetooth reports that
 operator mode is required but the PIN-gated maintenance action is absent,

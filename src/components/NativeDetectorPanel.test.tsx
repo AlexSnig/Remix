@@ -86,6 +86,8 @@ describe('NativeDetectorPanel kiosk access', () => {
     const enableAutoStart = screen.getByRole('button', {name: 'Увімкнути kiosk і автозапуск'});
     expect(openOperatorMode).toBeDisabled();
     expect(enableAutoStart).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Підключити або змінити Bluetooth-колонку'})).toBeEnabled();
+    expect(screen.getByText(/будь-яка A2DP\/BLE-колонка/)).toBeVisible();
 
     fireEvent.change(screen.getByPlaceholderText('PIN оператора'), {target: {value: '1234'}});
     expect(openOperatorMode).toBeEnabled();

@@ -50,6 +50,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.max
 import kotlin.math.min
+import ua.alexsnig.exhibitmotion.kiosk.KioskPolicyController
 
 /**
  * The only owner of the production camera. It remains START_NOT_STICKY: an
@@ -244,7 +245,7 @@ class MotionDetectorService : LifecycleService() {
     private fun playRouteTest() {
         serviceScope.launch {
             settings = store.loadSettings()
-            val route = resolveRoute()
+            val route = resolveOperatorTestRoute()
             when {
                 !hasImportedAudio() -> fail("Спочатку імпортуйте локальний аудіофайл")
                 route.kind == AudioRouteKind.UNAVAILABLE -> audioRouteLost("Звук недоступний: тест не розпочато")
@@ -275,7 +276,12 @@ class MotionDetectorService : LifecycleService() {
             )
             return
         }
-        completeRouteTest(resolveRoute())
+        serviceScope.launch {
+            val route = resolveOperatorTestRoute()
+            withContext(Dispatchers.Main.immediate) {
+                completeRouteTest(route)
+            }
+        }
     }
 
     /** Only explicit operator confirmation may approve an audible route. */
@@ -826,6 +832,19 @@ class MotionDetectorService : LifecycleService() {
         settings.preferredBluetoothDeviceId,
         settings.preferredBluetoothDeviceName,
     )
+
+    /** A technician may replace the approved speaker only from the deliberate
+     * operator flow. The candidate still has to be A2DP/BLE media-capable and
+     * becomes trusted only after the person confirms audible playback. */
+    private suspend fun resolveOperatorTestRoute(): AudioRoute {
+        val kiosk = store.loadKioskAutoStartState()
+        return routeMonitor.resolve(
+            settings.preferredBluetoothDeviceId,
+            settings.preferredBluetoothDeviceName,
+            allowUnapprovedBluetoothMediaOutput =
+                !KioskPolicyController.isDeviceOwner(this) || kiosk.maintenanceMode,
+        )
+    }
 
     private suspend fun recordAutoStartResult(state: String, message: String) {
         if (startedFromAutoResume) store.recordBootStartResult(state, message)

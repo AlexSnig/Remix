@@ -4,12 +4,19 @@ Last verified: 2026-08-13
 
 ## Release
 
-- Current release candidate: `1.3.18`, Android `versionCode 23`.
-- Installed source checkpoint:
+- Current release candidate: `1.3.19`, Android `versionCode 24`.
+- The source checkpoint and exact post-checkpoint APK hash are pending the
+  final reviewed commit. The currently installed 1.3.18 checkpoint remains:
   `bf832d255615ced186e19fe9c79341ef04f87cd6`, pushed to `origin/main`.
-- The exact signed APK was rebuilt from that checkpoint and passed the full
+- The exact installed 1.3.18 APK was rebuilt from that checkpoint and passed the full
   release audit, SHA-256:
   `b240f2432ee3d45c5638b3262d83a3cd9a91da3c2b335b549f0aa60bac1a9ba8`.
+- `1.3.19` lets an operator in maintenance connect and audibly test any
+  successfully paired A2DP/BLE media speaker, even when a different Bluetooth
+  name was approved before. Confirmation replaces the stored route; outside
+  maintenance, unattended playback still accepts only the last heard and
+  approved speaker. SCO/call-only and non-media Bluetooth devices remain
+  rejected.
 - `1.3.18` restores PIN-gated operator access on a commissioned phone before
   the physical auto-start checklist is complete. This breaks the 1.3.17 setup
   deadlock without relaxing route, calibration, motion-test, or auto-start
@@ -44,12 +51,12 @@ Last verified: 2026-08-13
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
-## Automated evidence for 1.3.18
+## Automated evidence for 1.3.19
 
 - `npm run lint`: passed.
 - `npm run test:coverage`: 21/21 passed; 100% lines, 97.02% statements,
   85.07% branches, 89.13% functions in the selected critical utilities.
-- The new component regression reproduces the exact commissioned-phone state:
+- The component regression reproduces the exact commissioned-phone state:
   Device Owner and Lock Task active, PIN configured, auto-start disabled, and
   route/calibration/motion incomplete. It proves that operator access is
   available while auto-start remains disabled.
@@ -57,16 +64,18 @@ Last verified: 2026-08-13
 - `npx cap sync android`: passed; the packaged Android WebView contains
   `getAudioLibrary` and the Ukrainian catalog selector.
 - `npm run test:e2e`: 6/6 passed with Playwright.
-- Android native unit tests: 26/26 passed. The four new route-selection tests
-  cover same-name SCO/A2DP preference, unverified A2DP selection, SCO-only
-  rejection, and fail-closed approved-name matching.
+- Android native unit tests: 28/28 passed. Six route-selection tests cover
+  same-name SCO/A2DP preference, unverified media selection, SCO-only
+  rejection, strict approved-name matching, maintenance replacement with a
+  different A2DP name, and continued rejection of call-only replacement.
 - Android native unit tests, lint, `assembleDebug`, and signed
-  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL`, 274
-  actionable tasks).
-- Exact signed APK: v2 signature valid, expected certificate, ZIP/zipalign
+  `assembleRelease` passed together with JDK 21 (`BUILD SUCCESSFUL` in 9m 10s,
+  274 actionable tasks).
+- The pre-checkpoint signed APK audit passed: v2 signature valid, expected certificate, ZIP/zipalign
   valid, R8 Capacitor annotation descriptor present, not debuggable, no
-  `INTERNET`. The release audit also proved that all 20 repository `audio/`
-  files and the current catalog-enabled WebView bundle are packaged.
+  `INTERNET`, package `ua.alexsnig.exhibitmotion`, version 1.3.19/code 24.
+  The post-checkpoint rebuild and exact final hash remain required before
+  phone installation or handoff.
 
 ## Target museum phone
 

@@ -164,10 +164,14 @@ class MotionDetectorPlugin : Plugin() {
     @PluginMethod
     fun getAudioRoute(call: PluginCall) {
         pluginScope.launch {
-            val settings = DetectorStore.get(context).loadSettings()
+            val store = DetectorStore.get(context)
+            val settings = store.loadSettings()
+            val kiosk = store.loadKioskAutoStartState()
             val route = AudioRouteMonitor(context) {}.resolve(
                 settings.preferredBluetoothDeviceId,
                 settings.preferredBluetoothDeviceName,
+                allowUnapprovedBluetoothMediaOutput =
+                    !KioskPolicyController.isDeviceOwner(context) || kiosk.maintenanceMode,
             )
             call.resolve(routeData(route))
         }

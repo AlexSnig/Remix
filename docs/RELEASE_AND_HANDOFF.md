@@ -188,7 +188,7 @@ adb -s SERIAL shell dpm set-device-owner \
   ua.alexsnig.exhibitmotion/.kiosk.ExhibitDeviceAdminReceiver
 ```
 
-Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.18
+Open Exhibit Motion and use **«Налаштувати Home і Lock Task»**. Current 1.3.19
 shows this whenever either HOME or Lock Task policy is missing; do not apply the
 obsolete stock-launcher workaround from earlier releases. Then verify Device
 Owner type `0`, Lock Task policy, permissions, persistent HOME, and disabled OTA
@@ -200,7 +200,7 @@ Follow the six native checks in order:
 
 1. camera permission;
 2. approved local audio import;
-3. audible AUX or named Bluetooth route test;
+3. audible AUX or Bluetooth media-speaker route test;
 4. volume;
 5. 10-second calibration on the lens matching the physical mount;
 6. real motion/playback test.
@@ -209,14 +209,20 @@ Then close operator maintenance with the existing PIN, enable kiosk/autostart,
 reboot, and repeat a motion trigger with the screen off.
 
 If Lock Task is already active while the first operator wizard is incomplete,
-1.3.18 still exposes the PIN-gated **«Відкрити операторський режим»** action.
-Use it before **«Підключити Bluetooth-колонку»**. The Bluetooth action must stay
+1.3.19 still exposes the PIN-gated **«Відкрити операторський режим»** action.
+Use it before **«Підключити або змінити Bluetooth-колонку»**. The Bluetooth action must stay
 maintenance-only, while the auto-start action must remain blocked until the
 physical readiness checklist passes.
 
+In maintenance, any successfully paired A2DP/BLE media speaker may be selected
+for the route test. A person must hear it and tap **«Чую звук»**; that explicit
+confirmation replaces the previously stored Bluetooth route. Outside
+maintenance the runtime remains pinned to the last audible-approved speaker,
+and a different output forces a new test instead of silently playing.
+
 Safety invariants:
 
-- only the intended AUX or approved Bluetooth speaker may play;
+- only the intended AUX or the last audible-approved Bluetooth speaker may play;
 - route loss must block playback and never use the handset speaker;
 - a corrupt or mislabeled audio file must not replace the last working file;
 - camera failure must be visible and must never fall back to a simulated feed;
