@@ -104,7 +104,7 @@ Last verified: 2026-08-13
   checked-in workflow finds the current delivery artifact for the next
   guarded phone run; a new serial must still pass its own fresh-phone guards.
 
-- The most recently fresh-commissioned target is Samsung Galaxy A07 serial `R8YY929PZDA`
+- The phone connected for the latest commissioning run is Samsung Galaxy A07 serial `R8YY929PZDA`
   (`SM-A075F`), Android 16 / API 36. Its initial ADB state was `unauthorized`;
   restarting only the host ADB server changed it to an authorized `device`.
   The commissioning script now performs this one automatic restart whenever no
@@ -127,8 +127,30 @@ Last verified: 2026-08-13
   catalog selector, no selected narration and explicit `Звук недоступний`.
   No service/`action.AUTO_START` runs until the physical route/audibility,
   calibration, motion test and private operator PIN are completed locally.
+- On 2026-08-13 the no-argument guarded lane resolved `R8YY929PZDA` and the
+  current `/home/alex/exhibit-handoff-1.3.19-code24` release without overrides.
+  Because the phone was already commissioned, it correctly selected
+  `commissioned_update`; the one-user, zero-account, no-credential, Device
+  Owner and product-lane guards passed before installation.
+- `adb install -r` preserved `firstInstallTime=2026-08-12 15:41:06` and set
+  `lastUpdateTime=2026-08-13 13:45:45`. An independent pull of the installed
+  `base.apk` is byte-identical to the signed client artifact, SHA-256
+  `f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425`.
+- The one authorized reboot advanced Android `boot_count` from 2 to 3. When
+  Samsung did not re-enumerate in ADB, the workflow restarted only the host ADB
+  server; it did not reboot the phone again. Post-boot evidence independently
+  confirms Device Owner type 0, Exhibit Motion as resolved and top-resumed
+  HOME, Lock Task `LOCKED`, and Camera, Notifications and Bluetooth granted
+  with `POLICY_FIXED`. All three Samsung OTA packages are disabled,
+  `ota_disable_automatic_update=1`, and no Exhibit Motion crash/ANR was found.
+- `MotionDetectorService` and `action.AUTO_START` remain absent by design. The
+  guarded result is `SYSTEM_KIOSK_READY_OPERATOR_WIZARD_PENDING`: narration,
+  audible AUX/Bluetooth route approval, calibration, real motion test, private
+  operator PIN and auto-start must be completed locally for this serial.
+  Evidence is at
+  `/tmp/exhibit-motion-commission-R8YY929PZDA-20260813T134541`.
 
-- The currently connected incident target is Samsung Galaxy A07 serial `R8YL41DLHAY`
+- The physically accepted target from the preceding run is Samsung Galaxy A07 serial `R8YL41DLHAY`
   (`SM-A075F`), Android 16 / API 36. On 2026-08-12 the guarded preflight proved
   exactly one owner user, zero accounts, no secure Android credential, no
   Device Owner, no GuideMuseum/Exhibit Motion package, and the correct physical
@@ -367,10 +389,11 @@ Last verified: 2026-08-13
 Release 1.3.19 has **target-phone core commissioning and cold-boot evidence**
 on `R8YL41DLHAY`, but it is not yet final exhibition acceptance.
 
-1. `R8YY929PZDA` and `R8YL41DLGLR` still need their own operator wizard,
-   physical route, calibration, motion and `action.AUTO_START` evidence if they
-   remain deployment targets. Acceptance from `R8YL41DLHAY` cannot be copied
-   to another serial.
+1. `R8YY929PZDA` now runs the exact 1.3.19/code 24 release but still needs its
+   own operator wizard, physical route, calibration, motion and
+   `action.AUTO_START` evidence. `R8YL41DLGLR` needs the same if it remains a
+   deployment target. Acceptance from `R8YL41DLHAY` cannot be copied to either
+   serial.
 2. On `R8YL41DLHAY`, formally confirm the mounted lens and visitor zone, then
    record near/far samples at approximately 4–5 m, 2 m and 0.5–1 m. Prove that
    intended visitor movement triggers without treating whole-frame light
