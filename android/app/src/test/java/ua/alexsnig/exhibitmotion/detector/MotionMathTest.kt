@@ -64,4 +64,39 @@ class MotionMathTest {
         )
         assertEquals(10.0, MotionMath.calibratedThreshold(List(10) { 100.0 }), 0.0)
     }
+
+    @Test
+    fun `calibrate reports a quiet scene as unclamped`() {
+        val result = MotionMath.calibrate(listOf(1.0, 1.2, 1.3, 1.5, 1.7))
+        assertEquals(3.0, result.threshold, 0.0)
+        assertEquals(3.0, result.rawThreshold, 0.0)
+        assertFalse(result.clamped)
+    }
+
+    @Test
+    fun `calibrate reports the raw estimate when the clamp fires`() {
+        // A scene this noisy is what left a commissioned phone reacting only
+        // within about two metres, with nothing on screen saying so.
+        val result = MotionMath.calibrate(List(10) { 100.0 })
+        assertEquals(10.0, result.threshold, 0.0)
+        assertTrue(result.clamped)
+        assertTrue("raw estimate must exceed the clamp", result.rawThreshold > 10.0)
+    }
+
+    @Test
+    fun `calibrate without samples returns the minimum and is not clamped`() {
+        val result = MotionMath.calibrate(emptyList())
+        assertEquals(0.5, result.threshold, 0.0)
+        assertEquals(0.5, result.rawThreshold, 0.0)
+        assertFalse(result.clamped)
+    }
+
+    @Test
+    fun `a threshold sitting exactly on the clamp is not reported as clamped`() {
+        // Guards against warning on a scene that legitimately estimates 10.0%.
+        val result = MotionMath.calibrate(listOf(9.5, 9.5, 9.5, 9.5, 9.5))
+        assertEquals(10.0, result.threshold, 0.0)
+        assertEquals(10.0, result.rawThreshold, 0.0)
+        assertFalse(result.clamped)
+    }
 }

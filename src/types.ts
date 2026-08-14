@@ -44,6 +44,11 @@ export interface DetectorSettings {
   globalChangeCeiling: number;
   detectionZone: DetectionZone;
   calibratedNoiseFloor: number | null;
+  /** True when calibration hit the clamp: the scene was not quiet and the
+   * detector is left at its least sensitive setting. Written by calibration
+   * only, never by the operator. */
+  calibrationClamped: boolean;
+  calibrationRawNoiseFloor: number | null;
 }
 
 export interface MotionLog {

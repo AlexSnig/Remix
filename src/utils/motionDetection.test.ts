@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {analyzeMotion, calibratedThreshold, shouldTriggerMotion} from './motionDetection';
+import {analyzeMotion, calibrate, calibratedThreshold, shouldTriggerMotion} from './motionDetection';
 import {DEFAULT_DETECTION_ZONE} from './settings';
 
 const frame = (pixels: number[]) => new Uint8ClampedArray(pixels.flatMap(value => [value, value, value, 255]));
@@ -36,5 +36,19 @@ describe('motion detection', () => {
     expect(calibratedThreshold([0.1, 0.2, 0.2, 0.3, 0.3, 0.3, 0.4, 0.4, 30, 80])).toBe(1.4);
     expect(calibratedThreshold([1, 1.2, 1.3, 1.5, 1.7])).toBe(3);
     expect(calibratedThreshold(Array.from({length: 10}, () => 100))).toBe(10);
+  });
+
+  it('reports whether the calibration clamp fired', () => {
+    expect(calibrate([1, 1.2, 1.3, 1.5, 1.7])).toEqual({threshold: 3, rawThreshold: 3, clamped: false});
+    expect(calibrate([])).toEqual({threshold: 0.5, rawThreshold: 0.5, clamped: false});
+
+    const noisy = calibrate(Array.from({length: 10}, () => 100));
+    expect(noisy.threshold).toBe(10);
+    expect(noisy.clamped).toBe(true);
+    expect(noisy.rawThreshold).toBeGreaterThan(10);
+  });
+
+  it('does not warn when the estimate lands exactly on the clamp', () => {
+    expect(calibrate([9.5, 9.5, 9.5, 9.5, 9.5])).toEqual({threshold: 10, rawThreshold: 10, clamped: false});
   });
 });

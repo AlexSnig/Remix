@@ -27,6 +27,8 @@ export const DEFAULT_SETTINGS: DetectorSettings = {
   globalChangeCeiling: 70,
   detectionZone: DEFAULT_DETECTION_ZONE,
   calibratedNoiseFloor: null,
+  calibrationClamped: false,
+  calibrationRawNoiseFloor: null,
 };
 
 const clamp = (value: unknown, fallback: number, min: number, max: number): number => {
@@ -67,5 +69,10 @@ export function normalizeSettings(raw: unknown): DetectorSettings {
     calibratedNoiseFloor: value.calibratedNoiseFloor == null
       ? null
       : clamp(value.calibratedNoiseFloor, 0, 0, 10),
+    calibrationClamped: value.calibrationClamped === true,
+    // Not clamped to 10: the raw value is only informative above the clamp.
+    calibrationRawNoiseFloor: value.calibrationRawNoiseFloor == null
+      ? null
+      : clamp(value.calibrationRawNoiseFloor, 0, 0, 100),
   };
 }

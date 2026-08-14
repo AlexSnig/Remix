@@ -4,7 +4,32 @@ Last verified: 2026-08-14
 
 ## Release
 
-- Current release: `1.3.20`, Android `versionCode 25`.
+- Current source version: `1.3.21`, Android `versionCode 26`. It is **built and
+  audited but not installed on any phone**, and no phone has been updated to it.
+  All three museum phones still run `1.3.20`/code 25.
+- `1.3.21` makes a clamped calibration visible and gives the operator
+  detection-zone presets. It changes no trigger maths, no arming gate and no
+  route policy; the default zone stays the full frame, so an untouched phone
+  behaves exactly as on 1.3.20. The reasoning is in `RELEASE_NOTES.md` and the
+  full six-item plan is in `docs/DETECTOR_IMPROVEMENTS.md`.
+- The 1.3.21 APK built during development has SHA-256
+  `008168685d154eabeae3d2bc9b753680bd08e1c986114772fb94c5639228cf4a` and passed
+  the full static audit: v2 signature, expected certificate, ZIP/zipalign valid,
+  R8 Capacitor annotation descriptor present, not debuggable, no `INTERNET`,
+  package `ua.alexsnig.exhibitmotion`, version 1.3.21/code 26. It was built
+  before the source checkpoint was pushed, so any binary intended for a phone
+  must be rebuilt from the pushed commit and re-audited before installation.
+- Automated gates for 1.3.21 all passed: `npm run lint`, `npm run test:coverage`
+  (23/23, 100% lines, 97.07% statements, 84.28% branches, 89.36% functions),
+  `npm run build`, `npx cap sync android` with the new operator strings verified
+  inside the packaged WebView, `npm run test:e2e` (6/6), Android unit tests
+  (35/35, four new calibration-clamp regressions), Android lint,
+  `assembleDebug` and signed `assembleRelease` under JDK 21.
+- Installing 1.3.21 on a commissioned phone will not by itself improve range.
+  The operator must recalibrate, and where the clamp warning appears, narrow the
+  detection zone and calibrate again.
+- Previous release: `1.3.20`, Android `versionCode 25` — the binary currently on
+  every phone.
 - Release source checkpoint: `96789e2` (`Fix Bluetooth pairing outside Lock
   Task`), pushed to `origin/main`.
 - The exact signed release APK was rebuilt after that checkpoint and passed the

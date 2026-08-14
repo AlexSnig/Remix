@@ -11,6 +11,16 @@ data class MotionAnalysis(
     val changedPixels: Int,
 )
 
+/**
+ * [rawThreshold] is what the estimate produced before clamping, so a noisy
+ * calibration can be reported instead of quietly becoming a poor one.
+ */
+data class CalibrationResult(
+    val threshold: Double,
+    val rawThreshold: Double,
+    val clamped: Boolean,
+)
+
 enum class MotionSampleClassification(val wireValue: String) {
     BELOW_THRESHOLD("below_threshold"),
     CANDIDATE("candidate"),
@@ -83,15 +93,31 @@ object MotionMath {
      * headroom for sensor/exposure noise; the extra 0.5 percentage point keeps
      * a quiet camera from triggering on tiny pixel fluctuations.
      */
-    fun calibratedThreshold(samples: List<Double>, minimum: Double = 0.5): Double {
-        if (samples.isEmpty()) return minimum
+    fun calibratedThreshold(samples: List<Double>, minimum: Double = 0.5): Double =
+        calibrate(samples, minimum).threshold
+
+    /**
+     * Same estimate as [calibratedThreshold], but it also reports the value
+     * before clamping.
+     *
+     * The clamp is not a harmless upper bound. A stored threshold of
+     * [MAX_CALIBRATED_THRESHOLD] means the scene was moving while the operator
+     * calibrated, and it leaves the exhibit reacting only within roughly two
+     * metres. That has already happened in the field unnoticed, so the clamp
+     * has to be reportable rather than silent.
+     */
+    fun calibrate(samples: List<Double>, minimum: Double = 0.5): CalibrationResult {
+        if (samples.isEmpty()) return CalibrationResult(minimum, minimum, clamped = false)
         val sorted = samples.sorted()
         val median = medianOfSorted(sorted)
         val deviations = sorted.map { abs(it - median) }.sorted()
         val medianAbsoluteDeviation = medianOfSorted(deviations)
-        return min(
-            MAX_CALIBRATED_THRESHOLD,
-            max(minimum, roundToOneDecimal(median + 6.0 * medianAbsoluteDeviation + 0.5)),
+        val raw = roundToOneDecimal(median + 6.0 * medianAbsoluteDeviation + 0.5)
+        val threshold = min(MAX_CALIBRATED_THRESHOLD, max(minimum, raw))
+        return CalibrationResult(
+            threshold = threshold,
+            rawThreshold = raw,
+            clamped = raw > MAX_CALIBRATED_THRESHOLD,
         )
     }
 

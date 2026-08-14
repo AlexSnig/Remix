@@ -108,7 +108,15 @@ class DetectorStore private constructor(private val context: Context) {
             previous.detectionZone != settings.detectionZone
         val audioChanged = previous.customAudioId != settings.customAudioId
         val volumeChanged = previous.audioVolume != settings.audioVolume
-        val stored = if (detectorChanged) settings.copy(calibratedNoiseFloor = null) else settings
+        val stored = if (detectorChanged) {
+            settings.copy(
+                calibratedNoiseFloor = null,
+                calibrationClamped = false,
+                calibrationRawNoiseFloor = null,
+            )
+        } else {
+            settings
+        }
         context.detectorDataStore.edit {
             it[SETTINGS] = stored.toJson()
             if (detectorChanged) it[MOTION_TEST_PASSED] = false

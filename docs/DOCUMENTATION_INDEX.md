@@ -8,6 +8,8 @@ and client handoff.
 - [PROJECT_STATE.md](PROJECT_STATE.md) — current release, target-phone state,
   accepted evidence, and open gates.
 - [RELEASE_NOTES.md](../RELEASE_NOTES.md) — behavior by version.
+- [DETECTOR_IMPROVEMENTS.md](DETECTOR_IMPROVEMENTS.md) — the six detector
+  improvements, why each exists, and which ones ship in 1.3.21.
 - [README.md](../README.md) — product architecture, commands, and development
   overview.
 

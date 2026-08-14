@@ -62,13 +62,33 @@ export function shouldTriggerMotion(
     && consecutiveFrames >= requiredConsecutiveFrames;
 }
 
+export interface CalibrationResult {
+  threshold: number;
+  /** The estimate before clamping, so a noisy scene can be reported instead of
+   * quietly becoming a poor calibration. */
+  rawThreshold: number;
+  clamped: boolean;
+}
+
+export const MAX_CALIBRATED_THRESHOLD = 10;
+
 export function calibratedThreshold(samples: number[], minimum = 0.5): number {
-  if (samples.length === 0) return minimum;
+  return calibrate(samples, minimum).threshold;
+}
+
+/** Mirrors MotionMath.calibrate on the Kotlin side. */
+export function calibrate(samples: number[], minimum = 0.5): CalibrationResult {
+  if (samples.length === 0) return {threshold: minimum, rawThreshold: minimum, clamped: false};
   const sorted = samples.toSorted((a, b) => a - b);
   const median = medianOfSorted(sorted);
   const deviations = sorted.map(value => Math.abs(value - median)).toSorted((a, b) => a - b);
   const medianAbsoluteDeviation = medianOfSorted(deviations);
-  return Math.min(10, Math.max(minimum, Number((median + 6 * medianAbsoluteDeviation + 0.5).toFixed(1))));
+  const raw = Number((median + 6 * medianAbsoluteDeviation + 0.5).toFixed(1));
+  return {
+    threshold: Math.min(MAX_CALIBRATED_THRESHOLD, Math.max(minimum, raw)),
+    rawThreshold: raw,
+    clamped: raw > MAX_CALIBRATED_THRESHOLD,
+  };
 }
 
 function medianOfSorted(values: number[]): number {

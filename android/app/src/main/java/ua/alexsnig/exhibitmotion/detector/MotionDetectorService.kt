@@ -222,17 +222,34 @@ class MotionDetectorService : LifecycleService() {
             calibrationJob = serviceScope.launch {
                 delay(CALIBRATION_DURATION_MS)
                 val samples = synchronized(calibrationSamples) { calibrationSamples.toList() }
-                val threshold = MotionMath.calibratedThreshold(samples)
-                settings = settings.copy(noiseThreshold = threshold, calibratedNoiseFloor = threshold)
+                val calibration = MotionMath.calibrate(samples)
+                val threshold = calibration.threshold
+                settings = settings.copy(
+                    noiseThreshold = threshold,
+                    calibratedNoiseFloor = threshold,
+                    calibrationClamped = calibration.clamped,
+                    calibrationRawNoiseFloor = calibration.rawThreshold,
+                )
                 store.saveSettings(settings)
                 store.clearMotionTestPassed()
                 isCalibrating = false
                 withContext(Dispatchers.Main.immediate) {
                     stopCamera()
+                    // A clamped result is not a finished calibration. Saying
+                    // only the number here is what let a phone serve a whole
+                    // day reacting to visitors barely two metres away.
+                    val message = if (calibration.clamped) {
+                        "Калібрування завершено: ${"%.1f".format(threshold)}% — це максимум. " +
+                            "Сцена неспокійна (${"%.1f".format(calibration.rawThreshold)}%), " +
+                            "датчик реагуватиме лише зблизька. Приберіть рух у кадрі, " +
+                            "обмежте зону детекції та відкалібруйте ще раз"
+                    } else {
+                        "Калібрування завершено: ${"%.1f".format(threshold)}%. " +
+                            "Датчик вимкнений — виконайте тест руху або натисніть «Увімкнути датчик»"
+                    }
                     transition(
                         DetectorStatus.IDLE,
-                        "Калібрування завершено: ${"%.1f".format(threshold)}%. " +
-                            "Датчик вимкнений — виконайте тест руху або натисніть «Увімкнути датчик»",
+                        message,
                         route,
                     )
                     stopForeground(STOP_FOREGROUND_REMOVE)

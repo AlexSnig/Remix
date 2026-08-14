@@ -1,5 +1,68 @@
 # Release notes
 
+## 1.3.21 — A clamped calibration is visible, and the operator can crop the frame
+
+### Why this release exists
+
+`R8YL41DLHAY` served an exhibition day with a calibrated threshold of exactly
+`10.0 %`. That is the hard clamp in `MotionMath.calibratedThreshold`
+(`min(10, max(0.5, median + 6 × MAD + 0.5))`), and it is the least sensitive
+setting the product allows. It reduces the working range of the exhibit to
+roughly 1.5–2 m: several logged triggers sat at `10.4 %`, `10.5 %` and `11.0 %`,
+meaning visitors were only caught at the very edge of the zone, and anyone
+further away was silently missed.
+
+Nothing in the product said so. Calibration reported a finished state and a
+plausible number, and the phone went into service.
+
+The clamp fires when the calibration scene is not quiet. The product already
+contains the fix for that — `detectionZone` is honoured by `MotionMath.analyze`
+on both the Kotlin and TypeScript sides, persisted, clamped and correctly
+treated as invalidating calibration — but no operator could reach it, because
+only the browser fallback panel exposed zone presets. The commissioned phones
+therefore always analysed the whole frame, ceiling lights and windows included.
+
+Those are the same defect from two sides, so both are fixed together.
+
+### What changed
+
+- Calibration now reports its raw pre-clamp value and whether the clamp fired.
+  `MotionMath.calibrate()` returns `CalibrationResult(threshold, rawThreshold,
+  clamped)`; `MotionSettings` persists `calibrationClamped` and
+  `calibrationRawNoiseFloor`; the native completion message and the operator
+  panel both state plainly that the scene was not quiet and must be
+  recalibrated. The stored threshold is unchanged — this release adds reporting,
+  not new detection behaviour.
+- `DetectorStore.saveSettingsFromOperator` clears the new fields wherever it
+  already clears `calibratedNoiseFloor`, so a stale warning cannot outlive a
+  retune.
+- The operator panel exposes three detection-zone presets — full frame, centre,
+  and lower area — in the tuning section. Cropping the frame removes the noise
+  sources that push the calibration median into the clamp, which is what
+  actually limits distance. Changing the zone already invalidates calibration
+  and the motion test natively, and the panel now says so before the operator
+  taps.
+
+### What did not change
+
+Trigger maths, thresholds, arming gates, the approved-route policy, the
+handset-speaker prohibition and explicit CameraX failure are all untouched. The
+default detection zone remains the full frame, so an untouched phone behaves
+exactly as it did on 1.3.20.
+
+### Still planned
+
+`docs/DETECTOR_IMPROVEMENTS.md` specifies four further items: a read-only aiming
+mode so detection range can be measured without a working speaker, a cumulative
+trigger counter for the 100-trigger acceptance run, a speaker-side hint when the
+phone is provably streaming but the operator hears nothing, and a decision on
+lowering the calibration clamp from 10 % to about 5 %.
+
+### Versioning
+
+Android `versionCode 26`. Not yet installed on any phone; each serial needs its
+own recalibration and physical acceptance after the update.
+
 ## 1.3.20 — Bluetooth pairing confirmation remains outside Lock Task
 
 - Opens Android Bluetooth Settings in its own task after operator maintenance

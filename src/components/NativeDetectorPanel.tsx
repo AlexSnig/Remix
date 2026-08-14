@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, Bluetooth, CheckCircle2, Download, Headphones, ShieldCheck, SlidersHorizontal, Trash2, Volume2 } from 'lucide-react';
-import type { DetectorSettings } from '../types';
+import type { DetectionZone, DetectorSettings } from '../types';
 import type { Language } from '../utils/lang';
 import { canOpenOperatorMode, restoreKioskWithVerification } from '../utils/kioskTransition';
 import {
@@ -103,6 +103,10 @@ const COPY = {
     volume: '4. Гучність', saveVolume: 'Зберегти та застосувати', volumeDone: 'Гучність застосовано', calibration: '5. Калібрування',
     calibrate: 'Почати калібрування (10 с)', calibrationDone: 'Калібрування завершено',
     calibrationDoesNotArm: 'Калібрування не вмикає датчик. Після нього виконайте тест руху або натисніть «Увімкнути датчик».',
+    calibrationClamped: 'Сцена була неспокійна: поріг уперся в максимум 10%. Датчик реагуватиме лише зблизька — приблизно за 1,5–2 м. Приберіть рух у кадрі або обмежте зону детекції та відкалібруйте ще раз.',
+    calibrationRaw: 'Розрахунок без обмеження',
+    zone: 'Зона детекції', zoneFull: 'Весь кадр', zoneCenter: 'Центр', zoneLower: 'Нижня частина',
+    zoneHint: 'Менша зона прибирає з кадру вікна, стелю та світло, через які поріг злітає вгору. Зміна зони скидає калібрування й тест руху — їх треба пройти заново.',
     motion: '6. Тест руху', motionAction: 'Почати тест руху', finishMotion: 'Завершити тест', cancelMotion: 'Скасувати тест', motionDone: 'Рух і відтворення підтверджено',
     motionBlocked: 'Спочатку завершіть тест маршруту, збережіть гучність і виконайте калібрування.',
     arm: 'УВІМКНУТИ ДАТЧИК', armed: 'Датчик активний', running: 'ДАТЧИК ПРАЦЮЄ', status: 'Стан системи',
@@ -148,6 +152,10 @@ const COPY = {
     volume: '4. Volume', saveVolume: 'Save and apply', volumeDone: 'Volume applied', calibration: '5. Calibration',
     calibrate: 'Start calibration (10 s)', calibrationDone: 'Calibration complete',
     calibrationDoesNotArm: 'Calibration does not arm the detector. After it, run the motion test or tap “Arm detector”.',
+    calibrationClamped: 'The scene was not quiet: the threshold hit its 10% maximum. The detector will only react close up, at roughly 1.5–2 m. Remove the movement from the frame or narrow the detection zone, then calibrate again.',
+    calibrationRaw: 'Unclamped estimate',
+    zone: 'Detection zone', zoneFull: 'Full frame', zoneCenter: 'Center', zoneLower: 'Lower area',
+    zoneHint: 'A smaller zone removes windows, ceilings and lights that drive the threshold up. Changing the zone resets calibration and the motion test; both must be repeated.',
     motion: '6. Motion test', motionAction: 'Start motion test', finishMotion: 'Finish test', cancelMotion: 'Cancel test', motionDone: 'Motion and playback confirmed',
     motionBlocked: 'First complete the route test, save volume, and calibrate.',
     arm: 'ARM DETECTOR', armed: 'Detector armed', running: 'DETECTOR RUNNING', status: 'System status',
@@ -345,6 +353,15 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     setTuningDirty(false);
     await refreshSetup();
   };
+  // Coarse on purpose. A free-form crop is easy to get wrong on a mounted
+  // phone, and a zone that misses the visitor path is worse than a noisy one.
+  const zonePresets: {key: string; label: string; zone: DetectionZone}[] = [
+    {key: 'full', label: t.zoneFull, zone: {x: 0, y: 0, width: 1, height: 1}},
+    {key: 'center', label: t.zoneCenter, zone: {x: 0.2, y: 0.15, width: 0.6, height: 0.7}},
+    {key: 'lower', label: t.zoneLower, zone: {x: 0, y: 0.4, width: 1, height: 0.6}},
+  ];
+  const sameZone = (a: DetectionZone, b: DetectionZone) =>
+    a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
   const cameraGranted = readiness.cameraGranted;
   const soundVerified = readiness.routeVerified;
   const volumeSaved = readiness.audioVolume === volumeDraft;
@@ -420,6 +437,7 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
       </StepCard>
       <StepCard title={t.calibration} complete={calibrated}>
         <button disabled={detectorIsRunning} type="button" onClick={() => run('calibration', async () => { if (tuningDirtyRef.current) await saveTuning(settings); calibrationRunningRef.current = true; await MotionDetector.calibrate(); })} className="native-action">{busy === 'calibration' ? t.preparing : calibrated ? t.calibrationDone : t.calibrate}</button>
+        {settings.calibrationClamped && <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[10px] text-amber-200">{t.calibrationClamped}{settings.calibrationRawNoiseFloor != null && <> {t.calibrationRaw}: {settings.calibrationRawNoiseFloor.toFixed(1)}%.</>}</p>}
         <p className="text-[10px] text-gray-500 mt-3">{t.calibrationDoesNotArm}</p>
       </StepCard>
       <StepCard title={t.motion} complete={motionTestPassed}>
@@ -436,6 +454,13 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
         <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'user' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'user' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.frontCamera}</button>
         <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'environment' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'environment' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.rearCamera}</button>
       </div>
+      <p className="mt-5 text-[10px] font-bold uppercase tracking-wide text-gray-400">{t.zone}</p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {zonePresets.map(preset => (
+          <button key={preset.key} type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, detectionZone: preset.zone}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${sameZone(settings.detectionZone, preset.zone) ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{preset.label}</button>
+        ))}
+      </div>
+      <p className="mt-2 text-[10px] text-gray-500">{t.zoneHint}</p>
       <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.sensitivity}</span><span>{settings.sensitivity}%</span></span><input disabled={detectorIsRunning} type="range" min="1" max="100" value={settings.sensitivity} onChange={event => updateTuning({...settings, sensitivity: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
       <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.cooldownDelay}</span><span>{settings.coolDownDelay} {t.seconds}</span></span><input disabled={detectorIsRunning} type="range" min="2" max="60" value={settings.coolDownDelay} onChange={event => updateTuning({...settings, coolDownDelay: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>
       <label className="block mt-4 text-[10px] text-gray-400"><span className="flex justify-between"><span>{t.consecutiveFrames}</span><span>{settings.requiredConsecutiveFrames}</span></span><input disabled={detectorIsRunning} type="range" min="1" max="5" value={settings.requiredConsecutiveFrames} onChange={event => updateTuning({...settings, requiredConsecutiveFrames: Number(event.target.value)})} className="mt-2 w-full accent-[#F27D26]" /></label>

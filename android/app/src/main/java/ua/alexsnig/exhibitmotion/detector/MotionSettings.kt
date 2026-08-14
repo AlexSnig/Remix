@@ -25,6 +25,12 @@ data class MotionSettings(
     val globalChangeCeiling: Double = 70.0,
     val detectionZone: DetectionZone = DetectionZone(),
     val calibratedNoiseFloor: Double? = null,
+    /** True when calibration hit the 10% clamp, which means the scene was not
+     * quiet and the exhibit is left at its least sensitive setting. */
+    val calibrationClamped: Boolean = false,
+    /** The pre-clamp estimate, kept so the operator can see how far the scene
+     * was from a usable calibration. Null until the first calibration. */
+    val calibrationRawNoiseFloor: Double? = null,
     val preferredBluetoothDeviceId: Int? = null,
     val preferredBluetoothDeviceName: String? = null,
     val saveEventPhotos: Boolean = false,
@@ -40,6 +46,8 @@ data class MotionSettings(
         put("requiredConsecutiveFrames", requiredConsecutiveFrames)
         put("globalChangeCeiling", globalChangeCeiling)
         put("calibratedNoiseFloor", calibratedNoiseFloor)
+        put("calibrationClamped", calibrationClamped)
+        put("calibrationRawNoiseFloor", calibrationRawNoiseFloor)
         put("preferredBluetoothDeviceId", preferredBluetoothDeviceId)
         put("preferredBluetoothDeviceName", preferredBluetoothDeviceName ?: JSONObject.NULL)
         put("saveEventPhotos", saveEventPhotos)
@@ -76,6 +84,13 @@ data class MotionSettings(
                     ?.optDouble("calibratedNoiseFloor")
                     ?.takeIf { it.isFinite() }
                     ?.let { clamp(it, 0.0, 10.0) },
+                calibrationClamped = source.optBoolean("calibrationClamped", false),
+                // Deliberately not clamped to 10: the raw value is only useful
+                // when it is above the clamp that hid the problem.
+                calibrationRawNoiseFloor = source.takeIf { !it.isNull("calibrationRawNoiseFloor") }
+                    ?.optDouble("calibrationRawNoiseFloor")
+                    ?.takeIf { it.isFinite() }
+                    ?.let { clamp(it, 0.0, 100.0) },
                 preferredBluetoothDeviceId = source.takeIf { it.has("preferredBluetoothDeviceId") }
                     ?.optInt("preferredBluetoothDeviceId")
                     ?.takeIf { it > 0 },

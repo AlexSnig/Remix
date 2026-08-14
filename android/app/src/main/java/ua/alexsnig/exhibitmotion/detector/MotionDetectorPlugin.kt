@@ -263,6 +263,10 @@ class MotionDetectorPlugin : Plugin() {
             val store = DetectorStore.get(context)
             val merged = JSONObject(store.loadSettings().toJson())
             val incoming = JSONObject(raw.toString())
+            // Calibration outputs are not operator inputs. Dropping them here
+            // keeps the panel from echoing a stale clamp warning back over the
+            // result the calibration run just wrote.
+            CALIBRATION_OUTPUT_KEYS.forEach(incoming::remove)
             incoming.keys().forEach { key -> merged.put(key, incoming.get(key)) }
             val saved = MotionSettings.fromJson(merged.toString())
             val route = AudioRouteMonitor(context) {}.resolve(
@@ -812,6 +816,11 @@ class MotionDetectorPlugin : Plugin() {
 
     companion object {
         private const val MAX_AUDIO_BYTES = 12L * 1024 * 1024
+        private val CALIBRATION_OUTPUT_KEYS = listOf(
+            "calibratedNoiseFloor",
+            "calibrationClamped",
+            "calibrationRawNoiseFloor",
+        )
     }
 }
 
