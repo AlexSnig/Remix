@@ -1,6 +1,6 @@
 # Exhibit Motion project state
 
-Last verified: 2026-08-13
+Last verified: 2026-08-14
 
 ## Release
 
@@ -45,18 +45,20 @@ Last verified: 2026-08-13
   `/home/alex/exhibit-handoff-1.3.20-code25`. It contains exactly the signed
   APK, current staff PDF, current integrator PDF and `SHA256SUMS.txt`; no
   signing material, source, QA evidence or phone backup is present.
-- `sha256sum -c SHA256SUMS.txt` passed for all three payload files. Staff PDF
-  SHA-256: `b33986c591220deff0faa975bf4c4e1e6705310dd3b919e3878960c5fa14aeb2`;
+- Both PDFs were regenerated on 2026-08-15 after the fleet rollout and copied
+  into the handoff package; `sha256sum -c SHA256SUMS.txt` passed for all three
+  payload files. Staff PDF SHA-256:
+  `b959a3850659d817edbaee9b24dfbcaaffabff231a215f07e78b9e27e7644302`;
   integrator PDF SHA-256:
-  `58fda203fff3b4779145970e25655e4d19d6858332b3e12139e48b55611da86d`.
-- Both delivered PDFs are current 9-page A4 editions dated 2026-08-13. Text
-  extraction and representative full-page visual review passed; they record
-  1.3.20/code 25, the exact APK hash/certificate, guarded commissioning,
-  automatic ADB restart, post-boot OTA verification and the workflow for
-  replacing an approved route with any audible A2DP/BLE media speaker. The
-  integrator edition now also separates the completed `R8YL41DLHAY`
-  `SPB-010`/wizard/cold-boot gates from the still-open screen-off and burn-in
-  acceptance work.
+  `fca816f79b7db5b1c8f04c281010cd2e31efa932ff372ad965f96f20cbeaf3e2`.
+- Both delivered PDFs remain 9-page A4 editions. They record 1.3.20/code 25,
+  the exact APK hash/certificate, guarded commissioning, automatic ADB restart,
+  post-boot OTA verification and the workflow for replacing an approved route
+  with any audible A2DP/BLE media speaker. The 2026-08-15 edition adds the
+  three-phone rollout state, the version check that identifies a 1.3.17 operator
+  lockout, and the decision rule that separates a silent speaker from a faulty
+  phone. The staff edition gained a plain-language entry for a speaker that
+  appears connected and tested but is inaudible.
 - `v1.2.0` is defective and must never be installed. Its release-only R8 crash
   is retained in release notes for traceability.
 
@@ -204,6 +206,38 @@ Last verified: 2026-08-13
   This proves current-artifact discovery; it does not claim a completed kiosk
   preflight until the operator closes maintenance with the private PIN.
 
+- On 2026-08-15 `R8YL41DLHAY` was brought to the same 1.3.20/code 25 release, so
+  all three museum phones now run one binary. Before the update it was still on
+  1.3.19/code 24 and reproduced that release's pairing defect directly:
+  `com.android.settings/.Settings$BluetoothSettingsActivity` was the top-resumed
+  activity while `mLockTaskModeState` was still `LOCKED`. No
+  `MotionDetectorService` and no Wake Lock were present before the update, so
+  the update did not interrupt a running exhibit.
+- The guarded commissioned-update lane passed its preflight
+  (`PREFLIGHT_PASS_NO_DEVICE_CHANGES`) and then installed with `adb install -r`
+  and one reboot. `firstInstallTime` remained `2026-08-12 15:10:13`,
+  `lastUpdateTime` is `2026-08-15 00:24:15`, and the pulled installed
+  `base.apk` is byte-identical to the release, SHA-256
+  `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`. ADB again
+  needed only a host-server restart after the reboot. Evidence is at
+  `/tmp/exhibit-motion-commission-R8YL41DLHAY-20260815T002412`.
+- Post-boot evidence confirms 1.3.20/code 25, Device Owner intact, Lock Task
+  `LOCKED`, Exhibit Motion `.MainActivity` top-resumed, `boot_count` advanced
+  from 5 to 6, and `SPB-010` still bonded. App data survived the update: the
+  in-app event log still holds the 13.08 trigger history against the stored
+  10.0% threshold.
+- Auto-start did **not** resume on this boot, and that is correct fail-closed
+  behavior rather than a boot-resume regression. The operator had changed
+  narration on this phone to `+Бандера.mp3`, which by design cleared the stored
+  route approval and motion test, and `SPB-010` is currently powered off, so
+  media falls back to `speaker(2)` and the panel reports `Звук недоступний`
+  with the route step unchecked. The detector must not arm in that state.
+- To return `R8YL41DLHAY` to service: power on the approved speaker, repeat the
+  audible route test and **«Чую звук»**, recalibrate, repeat the real motion
+  test, re-enable auto-start with the private PIN, then cold-boot and confirm
+  `action.AUTO_START`. The earlier 1.3.19 acceptance for this serial does not
+  carry over the narration change.
+
 - The physically accepted target from the preceding run is Samsung Galaxy A07 serial `R8YL41DLHAY`
   (`SM-A075F`), Android 16 / API 36. On 2026-08-12 the guarded preflight proved
   exactly one owner user, zero accounts, no secure Android credential, no
@@ -311,8 +345,68 @@ Last verified: 2026-08-13
   threshold, so a separately heard screen-off trigger remains an open physical
   gate rather than an inferred pass.
 
-- The previous installation target was Samsung Galaxy A07 serial `R8YL41DLGLR`
-  (`SM-A075F`), Android 16 / API 36. Pre-install ADB proved one owner user,
+- On 2026-08-14 the third museum phone, Samsung Galaxy A07 serial `R8YL41DLGLR`
+  (`SM-A075F`), Android 16 / API 36, was connected because the operator could
+  not open operator maintenance to pair
+  a different Bluetooth speaker. It was still running the superseded
+  1.3.17/code 22 build, so this reproduced the documented 1.3.17 regression
+  rather than a pairing or speaker fault: with a PIN already configured and
+  auto-start readiness incomplete, the panel hid the only maintenance action,
+  while native Bluetooth Settings correctly demanded maintenance mode. Android
+  reported zero bonded devices and Lock Task `LOCKED` before the repair.
+- The read-only guarded preflight passed for that serial and returned
+  `PREFLIGHT_PASS_NO_DEVICE_CHANGES`, classifying the phone as
+  `commissioned_update`; evidence is at
+  `/tmp/exhibit-motion-commission-R8YL41DLGLR-20260814T234328`.
+- The no-argument guarded lane then installed the exact signed 1.3.20/code 25
+  release with `adb install -r` and one reboot. `firstInstallTime` remained
+  `2026-08-11 15:09:28`, `lastUpdateTime` is `2026-08-14 23:43:41`, and the
+  pulled installed `base.apk` is byte-identical to the release, SHA-256
+  `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`. When
+  Samsung did not re-enumerate, only the host ADB server was restarted; the OTA
+  blocks were reapplied after the first commissioned boot. The result was
+  `SYSTEM_KIOSK_READY_OPERATOR_WIZARD_PENDING`, evidence at
+  `/tmp/exhibit-motion-commission-R8YL41DLGLR-20260814T234339`.
+- Post-boot ADB confirms 1.3.20/code 25, Lock Task `LOCKED`, and Exhibit Motion
+  `.MainActivity` as the top-resumed HOME activity. The rendered Ukrainian panel
+  shows camera granted, narration `+Петлюра.mp3` selected, Device Owner, Home
+  app, Lock Task and Kiosk lock all satisfied, and the two expected open
+  blockers: unverified AUX/Bluetooth route and unconfirmed motion test. Route
+  state is correctly `Звук недоступний` with no speaker attached.
+- The repair is confirmed on this serial: the panel now renders the PIN field
+  together with both **«Відкрити операторський режим»** and **«Увімкнути kiosk і
+  автозапуск»**. It renders the existing-PIN form, not the create-PIN form, so a
+  private operator PIN is already configured on `R8YL41DLGLR`. The PIN was not
+  read, guessed, entered or recorded.
+- On 2026-08-15 the operator paired `HOCO BS47` on this serial under 1.3.20 and
+  reported no audible sound. ADB evidence shows the pairing fix itself working
+  on a third phone and speaker: exactly one bond exists, `A2dpStateMachine` is
+  `Connected` with `mIsPlaying: true`, SBC is negotiated at 44100 Hz / 16-bit /
+  stereo, and no Lock Task violation or `AUTH_FAIL` occurred.
+- The phone-side audio chain was proven complete while the route test ran:
+  media default device `bt_a2dp` (`0x80`), `STREAM_MUSIC` neither muted nor
+  internally muted at `15/15` on `bt_a2dp`, AVRCP absolute volume enabled and
+  pushed to the speaker at `150/150`, the AudioFlinger A2DP output thread out of
+  standby for the whole playback with master volume `1.000000`, and repeated
+  Exhibit Motion `USAGE_MEDIA` / `CONTENT_TYPE_SPEECH` AudioTracks in
+  `state:started`. The foreground service ran under
+  `ua.alexsnig.exhibitmotion.action.TEST_AUDIO`, so nothing was armed.
+- Silence with that evidence is therefore located in the speaker or its input
+  mode, not in Exhibit Motion, the route policy or the kiosk. It is not route
+  acceptance: **«Чую звук»** was not pressed and the stored approval is still
+  absent. `HOCO BS47` must be proven audible from an independent source before
+  it is treated as the exhibit speaker.
+- The operator also changed narration on this serial to `+Шептицький.mp3`. By
+  design that cleared the earlier route approval and motion test, so both must
+  be repeated after the speaker is audible.
+- Pairing the new speaker, its audible route approval, calibration, the real
+  motion test, PIN-gated auto-start and a cold reboot proving
+  `action.AUTO_START` remain open local human steps for this serial. Operator
+  maintenance was left open with Lock Task `NONE`; the operator must close it
+  with **«Повернути kiosk»** and the private PIN.
+
+- The earlier commissioning history for `R8YL41DLGLR` follows. Pre-install ADB
+  on 2026-08-11 proved one owner user,
   zero accounts, no Device Owner, Samsung Launcher as HOME, Lock Task `NONE`,
   and neither `ua.alexsnig.exhibitmotion` nor `com.guidemuseum` installed. No
   factory reset was needed or performed.
@@ -440,27 +534,38 @@ Last verified: 2026-08-13
 
 ## Open production gates
 
-Release 1.3.20 has **signed-artifact, guarded update and Bluetooth
-pairing/A2DP/app-route evidence** on `R8YY929PZDA`. The preceding 1.3.19 release
-has core commissioning and cold-boot evidence on `R8YL41DLHAY`. Neither is yet
-final exhibition acceptance for a new serial.
+All three museum phones — `R8YY929PZDA`, `R8YL41DLGLR` and `R8YL41DLHAY` — now
+run the identical signed 1.3.20/code 25 binary, each installed through the
+guarded lane with its own byte-identical `base.apk` check. Release 1.3.20 has
+**signed-artifact, guarded update and Bluetooth pairing/A2DP/app-route
+evidence** on `R8YY929PZDA`. Cold-boot `action.AUTO_START` evidence exists only
+from the earlier 1.3.19 run on `R8YL41DLHAY`. None of the three is at final
+exhibition acceptance, and no serial currently has an armed detector.
 
 1. `R8YY929PZDA` now runs the exact 1.3.20/code 25 release. Android bonding,
    active A2DP, test AudioTrack and the stored `ZEALOT-S24` approved-route UI
    are proven. Record the operator's separate audible statement, then complete
    calibration, a real motion/playback test, PIN-gated auto-start enable and a
-   cold reboot with `action.AUTO_START`. `R8YL41DLGLR` needs its own full
-   physical workflow if it remains a deployment target. Acceptance from
-   `R8YL41DLHAY` cannot be copied to either serial.
-2. On `R8YL41DLHAY`, formally confirm the mounted lens and visitor zone, then
+   cold reboot with `action.AUTO_START`. `R8YL41DLGLR` also runs 1.3.20/code 25
+   since 2026-08-14 and now exposes the PIN-gated maintenance action again, but
+   it still needs its own full physical workflow: pair the speaker, hear the
+   route, calibrate, motion-test, enable auto-start and prove cold boot.
+   Acceptance from `R8YL41DLHAY` cannot be copied to either serial.
+2. `R8YL41DLHAY` runs 1.3.20/code 25 since 2026-08-15 with its data, PIN and
+   `SPB-010` bond preserved, but its narration was changed to `+Бандера.mp3`,
+   which cleared the stored route approval and motion test. Power on the
+   speaker, repeat the audible route test, recalibrate, repeat the motion test,
+   re-enable auto-start with the PIN and prove `action.AUTO_START` on a cold
+   boot before this phone counts as in service again.
+3. On `R8YL41DLHAY`, formally confirm the mounted lens and visitor zone, then
    record near/far samples at approximately 4–5 m, 2 m and 0.5–1 m. Prove that
    intended visitor movement triggers without treating whole-frame light
    changes as motion.
-3. Produce one separately witnessed screen-off trigger through `SPB-010`, then
+4. Produce one separately witnessed screen-off trigger through `SPB-010`, then
    prove playback end, cooldown and re-arm while the display remains off.
    Exercise route loss/return and a different Bluetooth device, confirming
    fail-closed behavior and that the handset speaker stays silent.
-4. Run the documented 8-hour acceptance test on the final mount and charger:
+5. Run the documented 8-hour acceptance test on the final mount and charger:
    at least 100 triggers, permission loss/recovery, camera contention/recovery,
    app switching/kiosk return, heat observation and at least five complete
    power-off/power-on cycles. Only one new accepted reboot is recorded here.

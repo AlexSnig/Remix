@@ -36,6 +36,27 @@
   `USAGE_MEDIA` route test on the Bluetooth output and the native panel stored
   the route as verified. Human audibility remains a separately reported fact.
 
+### Fleet rollout on 2026-08-14 and 2026-08-15
+
+- `R8YL41DLGLR` was still on 1.3.17/code 22 and showed the 1.3.17 lockout in the
+  field: with a PIN configured and auto-start readiness incomplete, the panel
+  hid **«Відкрити операторський режим»** while native Bluetooth Settings
+  required maintenance mode, so the operator could not reach the screen needed
+  to pair another speaker. The guarded update to 1.3.20/code 25 restored the
+  action; `firstInstallTime` was preserved and the installed `base.apk` matched
+  the release artifact.
+- `R8YL41DLHAY` was still on 1.3.19/code 24 and was found with Bluetooth
+  Settings top-resumed while Lock Task was `LOCKED` — the exact 1.3.19 defect
+  condition. It was updated to 1.3.20/code 25 the same way, keeping its data,
+  PIN, `SPB-010` bond and in-app event history.
+- All three museum phones now run one binary, SHA-256
+  `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`.
+- A speaker that pairs and connects but stays silent is not covered by this
+  release. On `R8YL41DLGLR` with `HOCO BS47`, the phone was proven to stream
+  (`mIsPlaying: true`, SBC negotiated, A2DP thread out of standby, absolute
+  volume at maximum), which locates such faults in the speaker.
+  `docs/DEVICE_OWNER_KIOSK.md` carries the decision procedure.
+
 ## 1.3.19 — Any media-capable Bluetooth speaker can replace the approved route
 
 - Allows an operator in maintenance mode to connect and test any successfully

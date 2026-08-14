@@ -317,6 +317,148 @@ complete any invalidated checks, then choose **«Повернути kiosk»**. U
 installed with `adb install -r` under the same signing key preserve Device
 Owner. Undoing Device Owner requires a factory reset.
 
+## Detection range: what actually governs it
+
+Range is not a camera property. It follows from four values in
+`MotionDetectorService` and `MotionMath`:
+
+| Value | Current setting | Effect |
+| --- | --- | --- |
+| Analysis grid | `ANALYSIS_WIDTH 36` × `ANALYSIS_HEIGHT 48` = 1728 cells | one cell is the smallest detectable unit of movement |
+| Frame rate | `FRAME_INTERVAL_MS 100` → 10 FPS | only the change between two frames 100 ms apart is seen |
+| `sensitivity` | default `70` → per-cell threshold `max(10, 100 − 0.9 × s)` = `37`/255 | a cell counts as changed only above ~14 % contrast |
+| `noiseThreshold` | calibrated, clamped to `[0.5, 10]` | share of the 1728 cells that must change to trigger |
+
+A trigger also needs `requiredConsecutiveFrames = 2` (~200 ms of sustained
+movement) and must stay under `globalChangeCeiling = 70 %`, which is what keeps
+a light switch from counting as a visitor.
+
+`sensitivity` and `noiseThreshold` are independent. `sensitivity` decides
+whether a moving surface is visible at all — in dim light, dark clothing
+against a dark wall may never exceed 37/255, and no threshold change will help.
+`noiseThreshold` decides how much of the frame that movement must fill, and it
+is what sets distance.
+
+### Geometry
+
+For a portrait-mounted phone, a 1.7 m × 0.5 m adult projects to roughly
+`0.67 / D²` of the frame area (D in metres). Walking changes only part of that
+silhouette between two frames — about 30–60 % of it for lateral movement, much
+less for someone walking straight at the lens.
+
+| Distance | Projected area | Typical changed share |
+| --- | --- | --- |
+| 1 m | ~50 % | 15–30 % |
+| 2 m | ~17 % | 5–10 % |
+| 3 m | ~7.5 % | 2–4.5 % |
+| 4 m | ~4.2 % | 1.3–2.5 % |
+| 5 m | ~2.7 % | 0.8–1.6 % |
+
+Read against the calibrated threshold, that gives an approximate working range
+of **1.5–2 m at a 10 % threshold, 3–4 m at ~2.7 %, and 5–6 m at ~1 %**.
+
+These figures assume a ~66°/52° portrait field of view and must be treated as
+planning estimates, not acceptance. The measured walk below is the only
+evidence that counts.
+
+### A calibrated threshold of exactly 10.0 % is a warning sign
+
+`MotionMath.calibratedThreshold` returns `median + 6 × MAD + 0.5` clamped to a
+maximum of 10. A stored value of exactly `10.0 %` therefore means the clamp
+fired: the scene was not quiet while calibrating, and the exhibit was left with
+the least sensitive setting the product allows. Every trigger logged on
+`R8YL41DLHAY` on 2026-08-13 carries `Поріг: 10.0%`, with several samples barely
+above it (`10.4 %`, `10.5 %`, `11.0 %`) — consistent with visitors only being
+caught close to the phone.
+
+Recalibrate with the visitor zone empty and still. If the result clamps at 10 %
+again, something inside the frame is genuinely moving — a window, a doorway,
+flickering light, or a vibrating mount — and it must be fixed physically.
+
+### Measuring the real range
+
+Live motion telemetry is only published while the detector is `ARMED`, so the
+approved audio route must be restored first. Then:
+
+```bash
+adb -s SERIAL logcat -c
+adb -s SERIAL logcat -s MotionDetectorService:D | grep "Motion sample"
+```
+
+Walk the intended visitor path for about ten seconds at 5 m, 4 m, 3 m, 2 m and
+1 m, marking the floor for each station. Each line reports the sample, the
+threshold, the ceiling and the consecutive-frame count, which is enough to
+state the distance at which samples stop clearing the threshold. Record that
+distance per serial; it is not transferable between mounts.
+
+## Field faults already diagnosed on real phones
+
+### Operator mode cannot be opened, so a speaker cannot be paired
+
+Symptom: on a commissioned phone the operator wants to pair another Bluetooth
+speaker, but tapping Bluetooth answers **«Спочатку відкрийте операторський
+режим»** while the panel shows no **«Відкрити операторський режим»** action, or
+shows it and the pairing still ends in Android `AUTH_FAIL 14`.
+
+Check the installed release first — do not touch policy, data or the speaker:
+
+```bash
+adb -s SERIAL shell dumpsys package ua.alexsnig.exhibitmotion \
+  | grep -E "versionName|versionCode="
+```
+
+- `1.3.17` / code 22 is the cause of the missing action. In that build a
+  configured PIN combined with incomplete auto-start readiness hid the only
+  maintenance entry point, while native Bluetooth Settings correctly required
+  maintenance mode. The operator is then locked out of the only screen that can
+  change the route. 1.3.18 restored the PIN-gated action for exactly this state.
+- `1.3.19` / code 24 or older is the cause of the pairing failure. Those builds
+  opened Bluetooth Settings inside the allowlisted Exhibit Motion task, so
+  Android refused the separate pairing-confirmation activity with
+  `Attempted Lock Task Mode violation` and bonding ended
+  `HCI_ERR_HOST_REJECT_SECURITY`, `hciReason: 14`. 1.3.20 opens Settings as its
+  own standard task after maintenance exits Lock Task.
+
+Repair by updating to the current signed release with the guarded lane. It
+preserves app data, the operator PIN, Device Owner, HOME and Lock Task:
+
+```bash
+bash .agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh
+```
+
+Confirm afterwards that `firstInstallTime` is unchanged, the installed
+`base.apk` hash equals the release artifact, and the panel again renders the
+PIN field with **«Відкрити операторський режим»**. Never repair this by clearing
+app data, uninstalling, or removing Device Owner — all three destroy the
+commissioning and none of them address the cause.
+
+### The speaker pairs and connects but nothing is audible
+
+Decide phone-side versus speaker-side before touching the installation. Run
+these while the operator route test is actually playing:
+
+```bash
+adb -s SERIAL shell dumpsys bluetooth_manager | grep -iE "mIsPlaying|AvrcpVolumeManager" -A6
+adb -s SERIAL shell dumpsys audio | sed -n '/- STREAM_MUSIC/,/Volume Group/p'
+adb -s SERIAL shell dumpsys media.audio_flinger \
+  | grep -A25 "AUDIO_DEVICE_OUT_BLUETOOTH_A2DP" | grep -E "Standby|Master volume"
+```
+
+The phone is proven innocent when all of these hold together: the A2DP state
+machine is `Connected` with `mIsPlaying: true`, a codec is negotiated,
+`STREAM_MUSIC` is neither muted nor internally muted at full volume on
+`bt_a2dp`, AVRCP absolute volume is pushed to the speaker at its maximum, and
+the A2DP output thread leaves standby for the whole playback with master volume
+`1.000000`. Silence with that evidence is in the speaker, not in Exhibit Motion.
+
+Sample the output thread **during** playback. Between tests it returns to
+standby, and a standby snapshot proves nothing either way.
+
+Then work the speaker: remove any TF card and AUX cable, switch its input mode
+to Bluetooth, raise its own volume, and prove it audible from an independent
+phone or laptop before treating it as the exhibit speaker. Do not press
+**«Чую звук»** to move the workflow along — that stores an unheard route.
+
 ## Known limits to state plainly at handover
 
 - **Factory reset protection** is reported by diagnostics as
