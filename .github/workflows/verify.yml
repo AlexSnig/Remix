@@ -1,0 +1,116 @@
+name: Verify
+
+# Answers one question only: did anything break. Whether a binary may reach a
+# museum phone is decided on the workstation by the signed release audit, the
+# release ledger and the guarded commissioning script. No signing key, no
+# keystore.properties and no assembleRelease ever run here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web gates and packaged WebView
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: TypeScript
+        run: npm run lint
+
+      - name: Unit tests and coverage thresholds
+        run: npm run test:coverage
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Sync the bundle into Android
+        run: npx cap sync android
+
+      - name: Packaged WebView carries the current operator UI
+        run: bash .github/scripts/assert-packaged-webview.sh
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end suite
+        run: npm run test:e2e
+
+  android:
+    name: Native tests, Android lint and debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to run with signing material present
+        run: |
+          if [[ -f android/keystore.properties ]]; then
+            echo "keystore.properties must never exist in CI." >&2
+            exit 1
+          fi
+          echo "No signing material in the workspace."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Build the WebView the APK will package
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Native unit tests, lint and debug assembly
+        working-directory: android
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports
+          path: |
+            android/app/build/test-results/testDebugUnitTest/*.xml
+            android/app/build/reports/lint-results-debug.html
+          if-no-files-found: warn
+
+  ledger:
+    name: Release ledger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Ledger self-consistency
+        run: bash .agents/skills/exhibit-motion-release/scripts/release-guard.sh lint
+
+      - name: Release guard test suite
+        run: bash .agents/skills/exhibit-motion-release/scripts/release-guard.test.sh
