@@ -14,7 +14,8 @@ Last verified: 2026-08-18
   indistinguishable from an unselected button on the phone. No trigger maths,
   arming gate, route policy, calibration behaviour or zone geometry changed.
 - Automated gates for 1.3.22 all passed: `npm run lint`, `npm run test:coverage`
-  (26/26, 100% lines, 97.07% statements, 84.28% branches, 89.36% functions),
+  (26/26; in the three selected critical utilities: 100% lines, 97.07%
+  statements, 84.28% branches, 89.36% functions),
   `npm run build`, `npx cap sync android` with `native-action-active` and both
   language variants of the three zone labels verified inside the packaged
   WebView, `npm run test:e2e` (6/6), Android unit tests (35/35, zero failures),
