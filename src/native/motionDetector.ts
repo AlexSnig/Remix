@@ -43,6 +43,20 @@ export interface BundledNativeAudio {
   mimeType: string;
 }
 
+export interface NativeDailySummary {
+  /** Local calendar day, ISO `yyyy-MM-dd`. */
+  day: string;
+  triggers: number;
+  firstTriggerAtMs: number;
+  lastTriggerAtMs: number;
+  cameraRestarts: number;
+  /** Only losses that interrupted a live exhibit. */
+  routeLosses: number;
+  serviceStarts: number;
+  minBatteryPercent: number | null;
+  maxBatteryTemperatureC: number | null;
+}
+
 export interface NativeDiagnostics {
   versionName: string;
   versionCode: number;
@@ -56,6 +70,10 @@ export interface NativeDiagnostics {
   cameraRestarts: number;
   errors: number;
   eventCount: number;
+  /** Never reset by event pruning, so an acceptance run can be evidenced. */
+  triggersTotal: number;
+  /** Newest first, at most 60 entries. */
+  dailySummaries: NativeDailySummary[];
   status: NativeDetectorStatus;
   analyzedFrameCount: number;
   lastFrameAtMs: number;

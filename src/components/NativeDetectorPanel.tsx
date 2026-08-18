@@ -111,6 +111,9 @@ const COPY = {
     motionBlocked: 'Спочатку завершіть тест маршруту, збережіть гучність і виконайте калібрування.',
     arm: 'УВІМКНУТИ ДАТЧИК', armed: 'Датчик активний', running: 'ДАТЧИК ПРАЦЮЄ', status: 'Стан системи',
     unavailable: 'Звук недоступний', diagnostics: 'Діагностика', refresh: 'Оновити', export: 'Експорт JSON',
+    daily: 'Стан за добу', dailyToday: 'сьогодні', dailyTriggers: 'спрацювань', dailyLast: 'останнє',
+    dailyRestarts: 'Перезапуски камери', dailyRouteLosses: 'Втрати маршруту', dailyBattery: 'Батарея: мін · макс',
+    dailyTotal: 'Усього спрацювань', dailyNone: 'Ще немає записаних днів',
     noDiagnostics: 'Дані діагностики ще не завантажено', preparing: 'Виконується…',
     motionHint: 'Пройдіть перед камерою. Після сигналу натисніть «Завершити тест».',
     motionLive: 'Поточний рух / поріг',
@@ -160,6 +163,9 @@ const COPY = {
     motionBlocked: 'First complete the route test, save volume, and calibrate.',
     arm: 'ARM DETECTOR', armed: 'Detector armed', running: 'DETECTOR RUNNING', status: 'System status',
     unavailable: 'Sound unavailable', diagnostics: 'Diagnostics', refresh: 'Refresh', export: 'Export JSON',
+    daily: 'Daily state', dailyToday: 'today', dailyTriggers: 'triggers', dailyLast: 'last',
+    dailyRestarts: 'Camera restarts', dailyRouteLosses: 'Route losses', dailyBattery: 'Battery: min · max',
+    dailyTotal: 'Triggers in total', dailyNone: 'No days recorded yet',
     noDiagnostics: 'Diagnostics have not been loaded yet', preparing: 'Working…',
     motionHint: 'Move in front of the camera. After the signal, tap “Finish test”.',
     motionLive: 'Current motion / threshold',
@@ -324,6 +330,25 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     setVolumeDraft(settings.audioVolume);
   }, [settings.audioVolume]);
 
+  // The daily card exists to be read at a glance during the morning start, so
+  // it loads itself. It is informational: a failure here must never surface as
+  // a wizard error or block a step.
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      MotionDetector.getDiagnostics()
+        .then(value => { if (!cancelled) setDiagnostics(value); })
+        .catch(() => undefined);
+    };
+    load();
+    const onVisibilityChange = () => { if (!document.hidden) load(); };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   const run = async (action: StepId | 'arm' | 'diagnostics', work: () => Promise<void>) => {
     setError(null); setBusy(action);
     try { await work(); } catch (error) {
@@ -360,6 +385,14 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     {key: 'center', label: t.zoneCenter, zone: {x: 0.2, y: 0.15, width: 0.6, height: 0.7}},
     {key: 'lower', label: t.zoneLower, zone: {x: 0, y: 0.4, width: 1, height: 0.6}},
   ];
+  const isoDay = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const dailySummaries = diagnostics?.dailySummaries ?? [];
+  const latestDay = dailySummaries[0] ?? null;
+  const dayLabel = (day: string) => day === isoDay(new Date()) ? `${day} · ${t.dailyToday}` : day;
+  const clockLabel = (atMs: number) => atMs > 0
+    ? new Date(atMs).toLocaleTimeString(lang === 'uk' ? 'uk-UA' : 'en-GB', {hour: '2-digit', minute: '2-digit'})
+    : '—';
   const sameZone = (a: DetectionZone, b: DetectionZone) =>
     a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
   const cameraGranted = readiness.cameraGranted;
@@ -553,6 +586,27 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
       {detectorIsRunning && <p className="text-center text-[10px] text-emerald-300 mt-3">{t.rearmHint}</p>}
       {!checksComplete && <p className="text-center text-[10px] text-gray-500 mt-3">{t.armHint}</p>}
     </section>
+
+    {diagnostics && <section className="rounded-2xl border border-gray-800 bg-[#111111] p-4 text-left">
+      <p className="text-xs font-black uppercase tracking-wide">{t.daily}</p>
+      {latestDay ? <>
+        <p className="mt-3 text-sm font-bold text-slate-100">{dayLabel(latestDay.day)} · {latestDay.triggers} {t.dailyTriggers}{latestDay.lastTriggerAtMs > 0 ? ` · ${t.dailyLast} ${clockLabel(latestDay.lastTriggerAtMs)}` : ''}</p>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 text-[10px] text-gray-400">
+          <dt>{t.dailyRestarts}</dt><dd className="text-right text-slate-200">{latestDay.cameraRestarts}</dd>
+          <dt>{t.dailyRouteLosses}</dt><dd className="text-right text-slate-200">{latestDay.routeLosses}</dd>
+          <dt>{t.dailyBattery}</dt><dd className="text-right text-slate-200">{latestDay.minBatteryPercent == null ? '—' : `${latestDay.minBatteryPercent}% · ${latestDay.maxBatteryTemperatureC == null ? '—' : `${latestDay.maxBatteryTemperatureC.toFixed(1)}°C`}`}</dd>
+          <dt>{t.dailyTotal}</dt><dd className="text-right text-slate-200">{diagnostics.triggersTotal ?? 0}</dd>
+        </dl>
+        {dailySummaries.length > 1 && <ul className="mt-3 flex flex-col gap-1 text-[10px] text-gray-500">
+          {dailySummaries.slice(1, 7).map(day => (
+            <li key={day.day} className="flex justify-between gap-3">
+              <span>{day.day}</span>
+              <span className="text-slate-300">{day.triggers} {t.dailyTriggers}{day.routeLosses > 0 ? ` · ${day.routeLosses} ${t.dailyRouteLosses.toLowerCase()}` : ''}</span>
+            </li>
+          ))}
+        </ul>}
+      </> : <p className="text-[10px] text-gray-500 mt-3">{t.dailyNone}</p>}
+    </section>}
 
     <section className="rounded-2xl border border-gray-800 bg-[#111111] p-4 text-left">
       <div className="flex justify-between gap-2 items-center"><p className="text-xs font-black uppercase tracking-wide">{t.diagnostics}</p><div className="flex gap-2"><button type="button" onClick={() => run('diagnostics', async () => { setDiagnostics(await MotionDetector.getDiagnostics()); setBusy(null); })} className="native-icon-action" title={t.refresh}><SlidersHorizontal className="w-4 h-4" /></button><button type="button" onClick={() => run('diagnostics', async () => { await MotionDetector.exportDiagnostics(); setBusy(null); })} className="native-icon-action" title={t.export}><Download className="w-4 h-4" /></button></div></div>

@@ -56,6 +56,7 @@ const {motionDetectorMock, lockedIncompleteState} = vi.hoisted(() => {
       addListener: vi.fn().mockResolvedValue({remove: vi.fn()}),
       unlockKiosk: vi.fn(),
       saveSettings: vi.fn().mockResolvedValue(undefined),
+      getDiagnostics: vi.fn().mockResolvedValue({dailySummaries: [], triggersTotal: 0}),
     },
   };
 });
@@ -147,5 +148,77 @@ describe('NativeDetectorPanel detection zone', () => {
     await waitFor(() => expect(motionDetectorMock.saveSettings).toHaveBeenCalledWith({
       settings: expect.objectContaining({detectionZone: {x: 0.2, y: 0.15, width: 0.6, height: 0.7}}),
     }));
+  }, 10_000);
+});
+
+describe('NativeDetectorPanel daily state', () => {
+  afterEach(cleanup);
+
+  beforeEach(() => {
+    motionDetectorMock.getSettings.mockReset().mockResolvedValue(DEFAULT_SETTINGS);
+    motionDetectorMock.getDiagnostics.mockReset();
+  });
+
+  const renderPanel = () => render(<NativeDetectorPanel
+    lang="uk"
+    settings={DEFAULT_SETTINGS}
+    onSettingsChange={vi.fn()}
+    onRuntimeStatusChange={vi.fn()}
+  />);
+
+  it('reports the newest day, its last trigger and the cumulative total', async () => {
+    const lastTrigger = new Date(2026, 7, 19, 17, 42).getTime();
+    motionDetectorMock.getDiagnostics.mockResolvedValue({
+      triggersTotal: 1234,
+      dailySummaries: [
+        {
+          day: '2026-08-19',
+          triggers: 74,
+          firstTriggerAtMs: new Date(2026, 7, 19, 9, 5).getTime(),
+          lastTriggerAtMs: lastTrigger,
+          cameraRestarts: 0,
+          routeLosses: 0,
+          serviceStarts: 1,
+          minBatteryPercent: 96,
+          maxBatteryTemperatureC: 33.5,
+        },
+        {
+          day: '2026-08-18',
+          triggers: 41,
+          firstTriggerAtMs: 1,
+          lastTriggerAtMs: 2,
+          cameraRestarts: 2,
+          routeLosses: 1,
+          serviceStarts: 1,
+          minBatteryPercent: 88,
+          maxBatteryTemperatureC: 35.0,
+        },
+      ],
+    });
+
+    renderPanel();
+
+    expect(await screen.findByText(/74 спрацювань/)).toBeVisible();
+    expect(screen.getByText(/17:42/)).toBeVisible();
+    expect(screen.getByText('1234')).toBeVisible();
+    expect(screen.getByText('96% · 33.5°C')).toBeVisible();
+    expect(screen.getByText(/41 спрацювань/)).toBeVisible();
+  }, 10_000);
+
+  it('says so plainly when no day has been recorded yet', async () => {
+    motionDetectorMock.getDiagnostics.mockResolvedValue({triggersTotal: 0, dailySummaries: []});
+
+    renderPanel();
+
+    expect(await screen.findByText('Ще немає записаних днів')).toBeVisible();
+  }, 10_000);
+
+  it('never surfaces a diagnostics failure as an operator error', async () => {
+    motionDetectorMock.getDiagnostics.mockRejectedValue(new Error('diagnostics unavailable'));
+
+    renderPanel();
+
+    await screen.findByRole('button', {name: 'Весь кадр'});
+    expect(screen.queryByText(/diagnostics unavailable/)).toBeNull();
   }, 10_000);
 });

@@ -270,10 +270,48 @@ class DetectorStore private constructor(private val context: Context) {
         }
     }
 
-    suspend fun recordEvent(event: MotionEventEntity, keep: Int) {
+    /**
+     * The single trigger write path, so it is also where the day summary and
+     * the cumulative counter grow. The event log keeps only [keep] rows — far
+     * too few to evidence an acceptance run — while the day summary survives
+     * pruning and the counter never resets on its own.
+     */
+    suspend fun recordEvent(
+        event: MotionEventEntity,
+        keep: Int,
+        batteryPercent: Int? = null,
+        batteryTemperatureC: Double? = null,
+    ) {
         db.motionEventDao().insert(event)
         db.motionEventDao().pruneTo(keep)
+        context.detectorDataStore.edit {
+            it[TRIGGER_TOTAL] = (it[TRIGGER_TOTAL] ?: 0L) + 1L
+            it[DAILY_SUMMARIES] = DailySummaryPolicy.listToJson(
+                DailySummaryPolicy.recordTrigger(
+                    DailySummaryPolicy.listFromJson(it[DAILY_SUMMARIES]),
+                    event.timestampMs,
+                    batteryPercent,
+                    batteryTemperatureC,
+                ),
+            )
+        }
     }
+
+    /** Route losses are only counted while the exhibit was live; an absent
+     * speaker during setup is an expected state, not a fault of the day. */
+    suspend fun recordRouteLoss(atMs: Long = System.currentTimeMillis()) {
+        context.detectorDataStore.edit {
+            it[DAILY_SUMMARIES] = DailySummaryPolicy.listToJson(
+                DailySummaryPolicy.recordRouteLoss(DailySummaryPolicy.listFromJson(it[DAILY_SUMMARIES]), atMs),
+            )
+        }
+    }
+
+    suspend fun triggerTotal(): Long = context.detectorDataStore.data.first()[TRIGGER_TOTAL] ?: 0L
+
+    suspend fun dailySummaries(limit: Int = DailySummaryPolicy.RETAINED_DAYS): List<DailySummary> =
+        DailySummaryPolicy.listFromJson(context.detectorDataStore.data.first()[DAILY_SUMMARIES])
+            .take(limit.coerceIn(1, DailySummaryPolicy.RETAINED_DAYS))
 
     suspend fun eventCount(): Int = db.motionEventDao().count()
 
@@ -283,15 +321,33 @@ class DetectorStore private constructor(private val context: Context) {
 
     suspend fun deleteEvent(id: String) = db.motionEventDao().delete(id)
 
-    suspend fun recordServiceStart() {
+    suspend fun recordServiceStart(
+        batteryPercent: Int? = null,
+        batteryTemperatureC: Double? = null,
+    ) {
+        val now = System.currentTimeMillis()
         context.detectorDataStore.edit {
             it[SERVICE_STARTS] = (it[SERVICE_STARTS] ?: 0) + 1
-            it[LAST_STARTED] = System.currentTimeMillis()
+            it[LAST_STARTED] = now
+            it[DAILY_SUMMARIES] = DailySummaryPolicy.listToJson(
+                DailySummaryPolicy.recordServiceStart(
+                    DailySummaryPolicy.listFromJson(it[DAILY_SUMMARIES]),
+                    now,
+                    batteryPercent,
+                    batteryTemperatureC,
+                ),
+            )
         }
     }
 
     suspend fun recordCameraRestart() {
-        context.detectorDataStore.edit { it[CAMERA_RESTARTS] = (it[CAMERA_RESTARTS] ?: 0) + 1 }
+        val now = System.currentTimeMillis()
+        context.detectorDataStore.edit {
+            it[CAMERA_RESTARTS] = (it[CAMERA_RESTARTS] ?: 0) + 1
+            it[DAILY_SUMMARIES] = DailySummaryPolicy.listToJson(
+                DailySummaryPolicy.recordCameraRestart(DailySummaryPolicy.listFromJson(it[DAILY_SUMMARIES]), now),
+            )
+        }
     }
 
     suspend fun recordError() {
@@ -371,6 +427,8 @@ class DetectorStore private constructor(private val context: Context) {
         private val LAST_BOOT_START_MESSAGE = stringPreferencesKey("last_boot_start_message")
         private val PIN_FAILED_ATTEMPTS = intPreferencesKey("operator_pin_failed_attempts")
         private val PIN_LOCKED_UNTIL = longPreferencesKey("operator_pin_locked_until")
+        private val TRIGGER_TOTAL = longPreferencesKey("trigger_total")
+        private val DAILY_SUMMARIES = stringPreferencesKey("daily_summaries_json")
         private const val MAX_PIN_ATTEMPTS = 5
         private const val PIN_LOCKOUT_MS = 30_000L
 

@@ -751,6 +751,11 @@ class MotionDetectorPlugin : Plugin() {
             put("cameraRestarts", counters.cameraRestarts)
             put("errors", counters.errors)
             put("eventCount", store.eventCount())
+            // The event log keeps 20 rows; these two survive it. The counter is
+            // what evidences an acceptance run, and the day list is what staff
+            // read the next morning to tell a quiet day from a dead exhibit.
+            put("triggersTotal", store.triggerTotal())
+            put("dailySummaries", JSONArray().apply { store.dailySummaries().forEach { put(it.toJson()) } })
             put("status", snapshot.status.wireValue)
             put("analyzedFrameCount", snapshot.analyzedFrameCount)
             put("lastFrameAtMs", snapshot.lastFrameAtMs)

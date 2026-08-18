@@ -6,11 +6,13 @@ import android.app.Service
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.graphics.Rect
 import android.media.AudioDeviceInfo
 import android.net.Uri
+import android.os.BatteryManager
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -105,7 +107,8 @@ class MotionDetectorService : LifecycleService() {
         routeMonitor = AudioRouteMonitor(this) { onAudioDevicesChanged() }
         MotionNotifications.ensureChannels(this)
         routeMonitor.start()
-        serviceScope.launch { store.recordServiceStart() }
+        val battery = batterySample()
+        serviceScope.launch { store.recordServiceStart(battery.first, battery.second) }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -513,6 +516,9 @@ class MotionDetectorService : LifecycleService() {
         }
         motionTriggeredInCurrentRun = true
         transition(DetectorStatus.TRIGGERED, "Рух виявлено", route, motionPercent)
+        // Sampled here rather than on a timer: the service is already awake for
+        // this trigger, so the day summary costs no extra wakeups.
+        val battery = batterySample()
         serviceScope.launch {
             store.recordEvent(
                 MotionEventEntity(
@@ -522,6 +528,8 @@ class MotionDetectorService : LifecycleService() {
                     threshold = settings.noiseThreshold,
                 ),
                 keep = MAX_EVENTS,
+                batteryPercent = battery.first,
+                batteryTemperatureC = battery.second,
             )
         }
         transition(DetectorStatus.PLAYING, "Відтворення через ${route.displayName}", route, motionPercent)
@@ -632,14 +640,37 @@ class MotionDetectorService : LifecycleService() {
         }
     }
 
+    /**
+     * Battery charge and temperature from the sticky broadcast: no receiver is
+     * registered and no polling happens, so a permanently powered exhibit phone
+     * still yields a daily minimum charge and maximum temperature. A phone kept
+     * at 100% in a sealed enclosure for months is a swelling risk, and this is
+     * the only place the product can notice it.
+     */
+    private fun batterySample(): Pair<Int?, Double?> {
+        val intent = runCatching {
+            registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        }.getOrNull() ?: return null to null
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        val temperatureTenths = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)
+        val percent = if (level >= 0 && scale > 0) level * 100 / scale else null
+        val temperature = if (temperatureTenths != Int.MIN_VALUE) temperatureTenths / 10.0 else null
+        return percent to temperature
+    }
+
     private fun audioRouteLost(message: String) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             playerScope.launch { audioRouteLost(message) }
             return
         }
+        // Only a loss that interrupted a live exhibit belongs in the day
+        // summary. An absent speaker before arming is an expected setup state.
+        val wasLive = DetectorRuntime.current().status in LIVE_STATUSES
         routeVerified = false
         serviceScope.launch {
             store.clearVerifiedAudioRoute()
+            if (wasLive) store.recordRouteLoss()
             recordAutoStartResult("waiting_for_route", message)
         }
         player?.stop()
@@ -947,6 +978,16 @@ class MotionDetectorService : LifecycleService() {
         private const val CAMERA_RECOVERY_MAX_DELAY_MS = 30_000L
         private const val MAX_EVENTS = 20
         private val CAMERA_ACTIONS = setOf(ACTION_START, ACTION_AUTO_START, ACTION_CALIBRATE)
+
+        /** Statuses in which the exhibit was actually serving the hall, so a
+         * route loss is a fault of the day rather than an expected setup state. */
+        private val LIVE_STATUSES = setOf(
+            DetectorStatus.ARMED,
+            DetectorStatus.TRIGGERED,
+            DetectorStatus.PLAYING,
+            DetectorStatus.COOLDOWN,
+            DetectorStatus.RECOVERING,
+        )
         @Volatile private var activeInstance: MotionDetectorService? = null
 
         fun command(context: Context, action: String) {

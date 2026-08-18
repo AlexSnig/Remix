@@ -1,5 +1,62 @@
 # Release notes
 
+## 1.3.23 — The exhibit can prove what it did yesterday
+
+### Why this release exists
+
+Every failure this product has had in the field failed closed correctly and
+invisibly. `R8YL41DLHAY` served a whole exhibition day at the 10 % calibration
+clamp. `R8YL41DLGLR` played into a speaker nobody could hear. A phone came back
+from a reboot disarmed, exactly as designed, and nobody knew until someone stood
+in front of it. The screen is off, the hall is dark, and a dead exhibit looks
+precisely like a quiet one.
+
+The service already counts camera restarts, service starts, analysed frames and
+battery state. Nothing aggregated them, and the event log keeps twenty rows —
+too few to evidence the hundred triggers the acceptance run asks for.
+
+### What changed
+
+- A cumulative trigger counter that event pruning never resets, and a per-day
+  summary retained for 60 days: triggers, first and last trigger, camera
+  restarts, route losses, service starts, the day's lowest battery charge and
+  its highest temperature.
+- `DailySummaryPolicy` holds the folding rules as pure functions — day
+  boundaries in the exhibit's own timezone, minimum and maximum battery,
+  retention — covered by twelve JVM unit tests, the same treatment as
+  `MotionMath` and `CameraHealth`.
+- Summaries are stored as JSON in DataStore beside the settings, **not** in
+  Room. `DetectorStore` builds the database with
+  `fallbackToDestructiveMigration(false)`, and in Room 2.7 that argument is
+  `dropAllTables`: the call enables destructive migration, so raising the schema
+  version without an explicit migration would drop `motion_events` on every
+  commissioned phone. Keeping day summaries out of the database removes that
+  failure mode instead of guarding it.
+- Battery is sampled only at moments the service is already awake — a trigger
+  and a service start — so a permanently powered phone still yields a daily
+  charge minimum and temperature maximum at no extra wakeups.
+- Route losses count only when the exhibit was live (`ARMED`, `TRIGGERED`,
+  `PLAYING`, `COOLDOWN`, `RECOVERING`). An absent speaker during setup is an
+  expected state, not a fault of the day.
+- The operator panel gains a **Стан за добу / Daily state** card above
+  diagnostics, loaded on its own so it is readable during the morning start
+  without pressing refresh: the newest day, its trigger count and last trigger
+  time, camera restarts, route losses, battery range, and the cumulative total,
+  with the previous six days listed below. A diagnostics failure leaves the card
+  absent and never surfaces as an operator error.
+- `getDiagnostics` and the diagnostics JSON export carry `triggersTotal` and
+  `dailySummaries`, so the same evidence leaves the phone in one file.
+
+### What did not change
+
+No trigger maths, thresholds, arming gates, route policy, calibration behaviour
+or zone geometry. `MAX_EVENTS` stays at 20: the day summary is not an event log.
+The Room schema is untouched, so an update preserves the stored event history.
+
+### Versioning
+
+Android `versionCode 28`.
+
 ## 1.3.22 — The selected lens and detection zone are visibly selected
 
 ### Why this release exists

@@ -4,10 +4,37 @@ Last verified: 2026-08-18
 
 ## Release
 
-- Current source version: `1.3.22`, Android `versionCode 27`. It is being
-  commissioned onto the fourth museum phone `R8YYA1Y3KCD`; the three phones in
+- Current source version: `1.3.23`, Android `versionCode 28`. `1.3.22`/code 27
+  is installed on the fourth museum phone `R8YYA1Y3KCD`; the three phones in
   service still run `1.3.20`/code 25, so the fleet is deliberately mixed until
   they are updated.
+- `1.3.23` makes an exhibition day readable: a cumulative trigger counter that
+  event pruning never resets, and a 60-day per-day summary with triggers, first
+  and last trigger, camera restarts, live-only route losses, service starts and
+  the day's battery minimum and temperature maximum. The operator panel shows it
+  as the **Стан за добу / Daily state** card, loaded on its own so the morning
+  start needs no refresh tap.
+- The summaries deliberately live in DataStore, not Room. `DetectorStore` builds
+  the database with `fallbackToDestructiveMigration(false)`, and in Room 2.7
+  that argument is `dropAllTables`, so the call **enables** destructive
+  migration: raising the schema version without an explicit migration would drop
+  `motion_events` on every commissioned phone. Keeping day summaries outside the
+  database removes that failure mode rather than guarding it. The Room schema is
+  therefore untouched in 1.3.23 and an update preserves stored event history.
+- Battery is sampled only when the service is already awake — at a trigger and
+  at a service start — so a permanently powered phone yields a daily charge
+  minimum and temperature maximum with no extra wakeups. This is also the only
+  place the product can notice a phone held at 100 % in a sealed enclosure.
+- Automated gates for 1.3.23 all passed: `npm run lint`, `npm run test:coverage`
+  (29/29; in the three selected critical utilities: 100% lines), `npm run
+  build`, `npx cap sync android` with `Стан за добу` and `Daily state` verified
+  inside the packaged WebView, `npm run test:e2e` (6/6), Android unit tests
+  (47/47, twelve new `DailySummaryPolicy` cases), Android lint (zero errors) and
+  `assembleDebug` under JDK 21.
+- `org.json:json` was added to the **unit-test classpath only**: android.jar's
+  `org.json` is a stub that throws `not mocked`, which made pure serialization
+  logic untestable without Robolectric or an instrumented run. It never reaches
+  the APK.
 - `1.3.22` is a presentation-only fix on top of 1.3.21: the selected lens button
   and the selected detection-zone preset are now filled with the solid accent
   colour instead of re-tinting the base `.native-action` style, which was
