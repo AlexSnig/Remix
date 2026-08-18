@@ -38,6 +38,15 @@ this documentation index.
 - [Guarded museum-phone script](../.agents/skills/exhibit-motion-release/scripts/commission-museum-phone.sh)
   — automatic current-APK audit, fresh/update classification, system kiosk,
   one reboot, and serial-scoped evidence without repeated operator questions.
+- [releases.json](../releases.json) — one entry per `versionCode`: commit, APK
+  SHA-256, toolchain, artifact directory, the serials it reached, and a
+  `withdrawn` reason where a build must never be distributed.
+- [Release guard](../.agents/skills/exhibit-motion-release/scripts/release-guard.sh)
+  — `preflight`, `check`, `record` and `lint` around that ledger;
+  `release-guard.test.sh` covers it against temporary fixtures.
+- [CI workflow](../.github/workflows/verify.yml) — web gates, packaged-WebView
+  assertion, native tests with Android lint and a debug APK, and the ledger
+  suite. It never runs `assembleRelease` and never sees a signing key.
 
 ## Museum staff
 

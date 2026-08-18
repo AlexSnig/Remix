@@ -151,6 +151,48 @@ Last verified: 2026-08-18
   Its SHA-256 is
   `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`.
 
+## Release engineering
+
+- `releases.json` is the machine-readable record of one binary per
+  `versionCode`, seeded on 2026-08-18 with every release whose hash is known
+  (1.3.17/22 through 1.3.22/27) plus the reserved codes 19–21. Entries carry the
+  commit, APK SHA-256, toolchain, artifact directory, the serials reached, and a
+  `withdrawn` reason where a build must never be distributed — 1.3.14, 1.3.15,
+  1.3.17 and 1.3.21 are withdrawn, the last one because two different binaries
+  existed under code 26.
+- `release-guard.sh` enforces it: `preflight` blocks a dirty tree, a
+  web/Android version mismatch, a packaged WebView older than `src/`, and a
+  recorded `versionCode` being rebuilt from a different commit; `record` blocks
+  a second binary under an existing code; `check` blocks an unknown or withdrawn
+  APK; `lint` validates the ledger itself. `release-guard.test.sh` covers all of
+  it with 14 fixture cases that touch neither the repository nor a phone.
+- `verify-release-apk.sh` now fails on a ledger conflict for the same
+  `versionCode`, and treats an unrecorded code as a note, because a freshly
+  built APK is legitimately unrecorded until it is released.
+- `commission-museum-phone.sh` refuses to install any APK the ledger does not
+  know or has withdrawn. Verified read-only against `R8YYA1Y3KCD` on
+  2026-08-18: the lane printed `LEDGER_OK 1.3.22/code27` before its guards and
+  returned `PREFLIGHT_PASS_NO_DEVICE_CHANGES`.
+- The guard proved itself immediately on the real repository: after the ledger
+  commit, `preflight` blocks building under code 27, because that code is
+  recorded from commit `ad79fb3` and `HEAD` had moved on.
+- `.github/workflows/verify.yml` runs the web gates, a packaged-WebView
+  assertion, the native tests with Android lint and a debug APK on JDK 21, and
+  the ledger suite. `assembleRelease` never runs there, the Android job aborts
+  if `keystore.properties` is present, and Node is pinned by `.nvmrc` and
+  `package.json` engines.
+- **CI has never executed on GitHub.** The first run
+  (`32185193287`, commit `7750fe1`) failed before any step with
+  `The job was not started because your account is locked due to a billing
+  issue`. Every job step was instead run locally on a clean `git clone` of that
+  commit: `npm ci`, lint, 26/26 tests, build, `cap sync`, the packaged-WebView
+  assertion, 6/6 Playwright, `release-guard lint` and 14/14 guard tests all
+  passed. The runner environment itself remains unverified until the GitHub
+  billing lock is cleared.
+- `assert-packaged-webview.sh` was negatively tested: with `getAudioLibrary` and
+  one zone label removed from the packaged bundle it fails with both names, and
+  passes again after `npx cap sync android`.
+
 ## Target museum phone
 
 ### Fourth phone `R8YYA1Y3KCD` — 1.3.22 fresh commissioning, 2026-08-18
