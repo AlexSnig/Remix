@@ -81,6 +81,16 @@ Never ship two different binaries under one `versionCode`. Bump
 `android/app/build.gradle` and `package.json` together with any change that
 reaches a device, so an installed APK can always be traced back to a commit.
 
+`releases.json` is the machine-readable record of that rule: one entry per
+versionCode, with the commit, the APK SHA-256, the toolchain and the serials it
+reached. `release-guard.sh preflight` refuses to build on a dirty tree, on
+mismatched web/Android versions, on a stale packaged WebView, or on a
+versionCode already recorded from another commit. `release-guard.sh record`
+refuses a second binary under an existing code, and
+`commission-museum-phone.sh` refuses to install an APK the ledger does not know
+or has marked withdrawn. Add a `withdrawn` reason instead of deleting an entry:
+a reserved code can never be reused.
+
 Verify every release APK before it leaves the workstation: certificate
 fingerprint via `apksigner verify --print-certs`, and the R8 smoke check that
 `Lcom/getcapacitor/annotation/CapacitorPlugin;` survives into the packaged DEX.

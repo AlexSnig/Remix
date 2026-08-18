@@ -92,6 +92,17 @@ note "[1/8] Verify exact signed release"
 "$verify_script" "$apk"
 apk_sha="$(sha256sum "$apk" | awk '{print $1}')"
 
+# Nothing reaches a phone unless the ledger knows this exact binary and has not
+# withdrawn it. This is the hard gate; the verifier's ledger check is advisory
+# because a freshly built APK is legitimately unrecorded until it is released.
+guard_script="$repo_root/.agents/skills/exhibit-motion-release/scripts/release-guard.sh"
+if [[ -x "$guard_script" ]]; then
+  guard_output="$("$guard_script" check "$apk" 2>&1)" || die "release ledger rejected this APK: ${guard_output#BLOCKED: }"
+  note "$guard_output"
+else
+  note "release ledger guard is unavailable at $guard_script; ledger check skipped"
+fi
+
 devices_output="$("$ADB_BIN" devices)"
 if [[ -z "$serial" ]]; then
   mapfile -t physical_serials < <(

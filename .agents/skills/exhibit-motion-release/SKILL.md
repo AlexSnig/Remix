@@ -46,6 +46,16 @@ or secrets, rebuild from that source checkpoint, and record its commit and APK
 SHA-256. If a rebuild differs from an already-used binary under the same
 `versionCode`, bump both web and Android versions before installation.
 
+Before Gradle, clear the release guard:
+
+```bash
+.agents/skills/exhibit-motion-release/scripts/release-guard.sh preflight
+```
+
+It enforces mechanically what the runbook states in prose: clean tree, matching
+web and Android versions, a packaged WebView newer than `src/`, and a
+`versionCode` that is either new or being rebuilt from its own recorded commit.
+
 Verify the exact APK with:
 
 ```bash
@@ -54,7 +64,18 @@ Verify the exact APK with:
 ```
 
 The script checks package identity, signature, certificate, ZIP alignment,
-absence of `INTERNET`, and the R8 Capacitor annotation descriptor.
+absence of `INTERNET`, and the R8 Capacitor annotation descriptor. It also fails
+when `releases.json` already records that `versionCode` with a different binary.
+
+Record the verified artifact before it reaches any phone:
+
+```bash
+.agents/skills/exhibit-motion-release/scripts/release-guard.sh record \
+  android/app/build/outputs/apk/release/app-release.apk --artifact HANDOFF_DIR
+```
+
+`commission-museum-phone.sh` refuses to install an APK the ledger does not know,
+or one whose entry carries a `withdrawn` reason.
 
 ## Execute the phone gate
 

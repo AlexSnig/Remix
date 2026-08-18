@@ -149,4 +149,43 @@ if ! grep -a -q 'Lcom/getcapacitor/annotation/CapacitorPlugin;' "${dex_files[@]}
   exit 1
 fi
 
+# Cross-check against the release ledger. A freshly built APK is legitimately
+# absent until `release-guard.sh record` runs, so absence is a note. A recorded
+# versionCode that carries a different binary is the failure this catches.
+ledger="$repo_root/releases.json"
+apk_sha256="$(sha256sum "$apk" | awk '{print $1}')"
+if [[ -f "$ledger" ]]; then
+  ledger_status="$(
+    node -e '
+      const fs = require("fs");
+      const [path, code, sha] = process.argv.slice(1);
+      const ledger = JSON.parse(fs.readFileSync(path, "utf8"));
+      const entry = (ledger.releases || []).find(r => Number(r.versionCode) === Number(code));
+      if (!entry) { console.log("UNRECORDED"); process.exit(0); }
+      if (entry.withdrawn) { console.log("WITHDRAWN " + entry.withdrawn); process.exit(0); }
+      const known = [entry.apkSha256, ...(entry.alternateSha256 || [])]
+        .filter(Boolean).map(value => String(value).toLowerCase());
+      if (!known.length) { console.log("UNRECORDED"); process.exit(0); }
+      console.log(known.includes(String(sha).toLowerCase()) ? "MATCH" : "CONFLICT " + entry.apkSha256);
+    ' "$ledger" "$expected_version_code" "$apk_sha256"
+  )"
+  case "$ledger_status" in
+    MATCH)
+      echo "Ledger: this binary is the recorded build for code $expected_version_code."
+      ;;
+    UNRECORDED)
+      echo "Ledger: code $expected_version_code is not recorded yet; run release-guard.sh record before installing."
+      ;;
+    WITHDRAWN*)
+      echo "Ledger conflict: code $expected_version_code is withdrawn — ${ledger_status#WITHDRAWN }" >&2
+      exit 1
+      ;;
+    CONFLICT*)
+      echo "Ledger conflict: code $expected_version_code is recorded as ${ledger_status#CONFLICT }, this APK is $apk_sha256." >&2
+      echo "One versionCode carries one binary. Bump the version instead of shipping a second build." >&2
+      exit 1
+      ;;
+  esac
+fi
+
 echo "OK: signed Exhibit Motion release APK passed all static gates."

@@ -87,6 +87,17 @@ no APKs, signing material, or secrets. Rebuild from that commit and record both
 the source commit and final APK SHA-256. Phone evidence may be recorded in a
 follow-up documentation commit after the exact binary is installed.
 
+## 3a. Clear the release guard before building
+
+```bash
+.agents/skills/exhibit-motion-release/scripts/release-guard.sh preflight
+```
+
+It blocks a dirty working tree, a `package.json`/`build.gradle` version
+mismatch, a packaged WebView older than `src/`, and a `versionCode` already
+recorded in `releases.json` from a different commit. Rebuilding the same
+recorded commit is allowed, because that is a reproducibility check.
+
 ## 4. Verify the signed APK
 
 ```bash
@@ -97,7 +108,21 @@ follow-up documentation commit after the exact binary is installed.
 The expected certificate is recorded in `docs/PROJECT_STATE.md`. The script
 also fails if the APK requests `INTERNET`, is debuggable, has the wrong package,
 is misaligned, has a broken signature, or lost the Capacitor annotation through
-R8.
+R8. It additionally fails when `releases.json` records this `versionCode` with a
+different SHA-256; an unrecorded code is only a note at this stage.
+
+## 4a. Record the binary in the ledger
+
+```bash
+.agents/skills/exhibit-motion-release/scripts/release-guard.sh record \
+  android/app/build/outputs/apk/release/app-release.apk \
+  --artifact /home/alex/exhibit-handoff-VERSION-codeCODE
+```
+
+Recording is idempotent for an identical rebuild and refuses a second binary
+under an existing code. `commission-museum-phone.sh` will not install an APK
+that is missing from the ledger, so this step comes before any phone. Add
+`--phone SERIAL` after an install to keep the fleet column current.
 
 Record the APK SHA-256 and source commit in the client verification report.
 

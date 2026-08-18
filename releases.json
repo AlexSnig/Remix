@@ -1,0 +1,115 @@
+{
+  "comment": [
+    "Every Exhibit Motion binary that has ever existed under a versionCode.",
+    "One versionCode carries exactly one apkSha256. This file is the machine-readable",
+    "source of truth for that rule; release-guard.sh enforces it, verify-release-apk.sh",
+    "cross-checks against it, and commission-museum-phone.sh refuses to install an APK",
+    "that is unknown here or marked withdrawn.",
+    "apkSha256 is null only for historical releases whose binary hash was never recorded.",
+    "Such entries still reserve their versionCode so it can never be reused."
+  ],
+  "package": "ua.alexsnig.exhibitmotion",
+  "certificateSha256": "bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e",
+  "releases": [
+    {
+      "version": "1.3.22",
+      "versionCode": 27,
+      "commit": "ad79fb3",
+      "apkSha256": "7fe3a17cc8b6802a5808db61267c1acf008499a50cdaebc4ee319ac26444b018",
+      "builtAt": "2026-08-18",
+      "toolchain": { "jdk": "21", "node": "22.22.1", "gradle": "8.14.3" },
+      "artifact": "/home/alex/exhibit-handoff-1.3.22-code27",
+      "phones": ["R8YYA1Y3KCD"],
+      "withdrawn": null
+    },
+    {
+      "version": "1.3.21",
+      "versionCode": 26,
+      "commit": "cc7da21",
+      "apkSha256": "008168685d154eabeae3d2bc9b753680bd08e1c986114772fb94c5639228cf4a",
+      "alternateSha256": ["91749d926123459cbaf2bd33aa0d8daf747033aed8555e3a0538d0473f6091d1"],
+      "builtAt": "2026-08-15",
+      "toolchain": { "jdk": "21", "node": "22.22.1", "gradle": "8.14.3" },
+      "artifact": null,
+      "phones": [],
+      "withdrawn": "Two different binaries were built under this versionCode; neither may be distributed. Superseded by 1.3.22/code 27."
+    },
+    {
+      "version": "1.3.20",
+      "versionCode": 25,
+      "commit": "96789e2",
+      "apkSha256": "d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49",
+      "builtAt": "2026-08-13",
+      "toolchain": { "jdk": "21", "node": "22.22.1", "gradle": "8.14.3" },
+      "artifact": "/home/alex/exhibit-handoff-1.3.20-code25",
+      "phones": ["R8YY929PZDA", "R8YL41DLHAY", "R8YL41DLGLR"],
+      "withdrawn": null
+    },
+    {
+      "version": "1.3.19",
+      "versionCode": 24,
+      "commit": null,
+      "apkSha256": "f3ac8083e7912101b581d21b3c087ceb23af654172d3fee8514a6c2d77b00425",
+      "builtAt": "2026-08-13",
+      "toolchain": null,
+      "artifact": "/home/alex/exhibit-handoff-1.3.19-code24",
+      "phones": ["R8YL41DLHAY", "R8YY929PZDA"],
+      "withdrawn": null
+    },
+    {
+      "version": "1.3.18",
+      "versionCode": 23,
+      "commit": null,
+      "apkSha256": "b240f2432ee3d45c5638b3262d83a3cd9a91da3c2b335b549f0aa60bac1a9ba8",
+      "builtAt": "2026-08-13",
+      "toolchain": null,
+      "artifact": null,
+      "phones": ["R8YL41DLHAY"],
+      "withdrawn": null
+    },
+    {
+      "version": "1.3.17",
+      "versionCode": 22,
+      "commit": null,
+      "apkSha256": "840314d7079b3f0fb3f42b297892643d6d044bf7467fbb244b849e268dc1cfc7",
+      "builtAt": "2026-08-11",
+      "toolchain": null,
+      "artifact": null,
+      "phones": ["R8YL41DLHAY", "R8YY929PZDA", "R8YL41DLGLR"],
+      "withdrawn": "With a PIN configured but auto-start readiness incomplete, the panel hid the only operator-maintenance action and locked the operator out."
+    },
+    {
+      "version": "1.3.16",
+      "versionCode": 21,
+      "commit": null,
+      "apkSha256": null,
+      "builtAt": null,
+      "toolchain": null,
+      "artifact": null,
+      "phones": [],
+      "withdrawn": null
+    },
+    {
+      "version": "1.3.15",
+      "versionCode": 20,
+      "commit": null,
+      "apkSha256": null,
+      "builtAt": null,
+      "toolchain": null,
+      "artifact": null,
+      "phones": [],
+      "withdrawn": "On Bluetooth devices exposing both SCO and A2DP it could select SCO and produce silent or broken narration."
+    },
+    {
+      "version": "1.3.14",
+      "versionCode": 19,
+      "commit": null,
+      "apkSha256": null,
+      "builtAt": null,
+      "toolchain": null,
+      "artifact": null,
+      "phones": [],
+      "withdrawn": "The APK carried the 20 catalog MP3s but a stale Capacitor WebView bundle omitted the catalog selector."
+    }
+  ]
+}
