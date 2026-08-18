@@ -19,6 +19,21 @@ Last verified: 2026-08-18
   language variants of the three zone labels verified inside the packaged
   WebView, `npm run test:e2e` (6/6), Android unit tests (35/35, zero failures),
   Android lint (zero errors) and `assembleDebug` under JDK 21.
+- 1.3.22 release source checkpoint: `ad79fb3` (`Make the selected lens and
+  detection zone visible`), pushed to `origin/main`. The signed release was
+  rebuilt from that pushed commit, after the stale `release/` output directory
+  was deleted, so exactly one binary exists under `versionCode 27`.
+- The exact signed 1.3.22 APK passed the full static audit — v2 signature,
+  expected certificate, ZIP/zipalign valid, R8 Capacitor annotation descriptor
+  present, not debuggable, no `INTERNET`, package `ua.alexsnig.exhibitmotion`,
+  version 1.3.22/code 27 — with SHA-256
+  `7fe3a17cc8b6802a5808db61267c1acf008499a50cdaebc4ee319ac26444b018`.
+- The 1.3.22 artifact directory `/home/alex/exhibit-handoff-1.3.22-code27`
+  currently holds only that APK and its `SHA256SUMS.txt`. It is an installation
+  artifact, **not a complete client package**: the staff and integrator PDFs are
+  still the 1.3.20/code 25 edition in
+  `/home/alex/exhibit-handoff-1.3.20-code25` and must be regenerated before
+  1.3.22 is delivered to the client.
 - `1.3.21`, Android `versionCode 26`, was **never installed on any phone**, but
   its behaviour ships inside 1.3.22: a clamped calibration becomes visible and
   the operator gains detection-zone presets. It changes no trigger maths, no
@@ -127,6 +142,50 @@ Last verified: 2026-08-18
   `d8ad4e49c67d69b122f8df7a196f078634814d7baa3ede7558b7772e44ebed49`.
 
 ## Target museum phone
+
+### Fourth phone `R8YYA1Y3KCD` — 1.3.22 fresh commissioning, 2026-08-18
+
+- Samsung Galaxy A07 serial `R8YYA1Y3KCD` (`SM-A075F`), Android 16 / API 36, is
+  a fourth museum phone with no prior record in this project. It arrived
+  authorized in ADB; no host ADB restart was needed for discovery.
+- The guarded lane classified it `fresh_commission` and its fresh-phone guards
+  passed: current user 0, exactly one `UserInfo{0:Власник}`, zero accounts,
+  `CredentialType: NONE`, no Device Owner (`Device Owner Type: -1`), no
+  GuideMuseum package and no prior Exhibit Motion install. **No factory reset
+  was needed or performed.**
+- The exact signed 1.3.22/code 27 APK was installed fresh. The pulled installed
+  `base.apk` is byte-identical to the verified release, SHA-256
+  `7fe3a17cc8b6802a5808db61267c1acf008499a50cdaebc4ee319ac26444b018`;
+  `firstInstallTime` and `lastUpdateTime` are both `2026-08-18 22:15:56`.
+- Device Owner was provisioned, native HOME/Lock Task/fixed-permission policies
+  applied, the three Samsung OTA packages disabled and one authorized reboot
+  performed. ADB did not re-enumerate after that reboot, so only the host ADB
+  server was restarted; the phone was not rebooted a second time.
+- Independent post-boot ADB evidence: version 1.3.22/code 27, Device Owner type
+  0 with `LockTaskPolicy {mPackages= ua.alexsnig.exhibitmotion}`, HOME resolving
+  to `ua.alexsnig.exhibitmotion/.MainActivity`, that activity top-resumed in
+  task `t8`, `mLockTaskModeState=LOCKED`, Camera/POST_NOTIFICATIONS/
+  BLUETOOTH_CONNECT granted with `POLICY_FIXED`, all three OTA packages in the
+  disabled list, `ota_disable_automatic_update=1`, `boot_count` advanced 2 → 3,
+  no Exhibit Motion crash or ANR, USB-powered at 100 %.
+- Rendered Ukrainian operator screen confirms the correct fail-closed state:
+  camera granted, no narration selected, explicit `Звук недоступний`, and the
+  four system gates Device Owner / Home app / Lock Task / Kiosk lock all green
+  with five open operator blockers.
+- The same screen proves the 1.3.22 fix on real hardware: in
+  `НАЛАШТУВАННЯ ДЕТЕКТОРА`, `Фронтальна камера` and `Весь кадр` are filled with
+  the solid accent colour and dark text, while `Задня камера`, `Центр` and
+  `Нижня частина` keep the unselected style. On 1.3.21 none of them looked
+  chosen.
+- Result: `SYSTEM_KIOSK_READY_OPERATOR_WIZARD_PENDING`; evidence at
+  `/tmp/exhibit-motion-commission-R8YYA1Y3KCD-20260818T221553`.
+- Open on this serial, all local and physical: choose the narration, connect and
+  audibly approve the AUX or Bluetooth route, save volume, calibrate, pass a
+  real motion test, set the private operator PIN, enable auto-start, then cold
+  boot and confirm `action.AUTO_START`. Burn-in is separate. No
+  `MotionDetectorService` runs yet, and that is correct.
+- The three phones in service (`R8YY929PZDA`, `R8YL41DLHAY`, `R8YL41DLGLR`)
+  remain on 1.3.20/code 25 and were not touched during this session.
 
 - Standing installation authority: when the user connects a dedicated Exhibit
   Motion museum phone and asks for everything/kiosk, the agent may run the
