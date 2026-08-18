@@ -28,12 +28,21 @@ Last verified: 2026-08-18
   present, not debuggable, no `INTERNET`, package `ua.alexsnig.exhibitmotion`,
   version 1.3.22/code 27 — with SHA-256
   `7fe3a17cc8b6802a5808db61267c1acf008499a50cdaebc4ee319ac26444b018`.
-- The 1.3.22 artifact directory `/home/alex/exhibit-handoff-1.3.22-code27`
-  currently holds only that APK and its `SHA256SUMS.txt`. It is an installation
-  artifact, **not a complete client package**: the staff and integrator PDFs are
-  still the 1.3.20/code 25 edition in
-  `/home/alex/exhibit-handoff-1.3.20-code25` and must be regenerated before
-  1.3.22 is delivered to the client.
+- Current client handoff: `/home/alex/exhibit-handoff-1.3.22-code27`. It
+  contains exactly the signed APK, the regenerated staff PDF, the regenerated
+  integrator PDF and `SHA256SUMS.txt`; no signing material, source, QA evidence
+  or phone backup is present. `sha256sum -c SHA256SUMS.txt` passed for all three
+  payload files on 2026-08-18. Staff PDF SHA-256:
+  `54d6cca0cc151840d5fd5412f28530071044a167ec716afef436701c218ba6ec`;
+  integrator PDF SHA-256:
+  `2cb4a5f2f80e0f60779a560c46dc22cdcbf973f962f22dc51d7cb081ae88491a`.
+- Both PDFs were regenerated from their HTML sources with the committed
+  `render-pdf.mjs` scripts on 2026-08-18 and remain 9-page A4 editions. They now
+  record 1.3.22/code 27 with the exact APK hash and certificate, the mixed-fleet
+  state (`R8YYA1Y3KCD` on 1.3.22, the other three still on 1.3.20/code 25), the
+  clamped-calibration warning with the instruction to narrow the detection zone
+  and recalibrate, and the fact that the selected lens and zone are now filled
+  with the accent colour. Rendered page checks confirmed no overflow.
 - `1.3.21`, Android `versionCode 26`, was **never installed on any phone**, but
   its behaviour ships inside 1.3.22: a clamped calibration becomes visible and
   the operator gains detection-zone presets. It changes no trigger maths, no
@@ -91,17 +100,17 @@ Last verified: 2026-08-18
   `bfd47221742dfdb12763a42f7cafdfdcd74469bd712e9616cb3dfa2501100f7e`
   (RSA 4096).
 - Runtime has no `android.permission.INTERNET`.
-- Current client handoff:
-  `/home/alex/exhibit-handoff-1.3.20-code25`. It contains exactly the signed
-  APK, current staff PDF, current integrator PDF and `SHA256SUMS.txt`; no
-  signing material, source, QA evidence or phone backup is present.
-- Both PDFs were regenerated on 2026-08-15 after the fleet rollout and copied
-  into the handoff package; `sha256sum -c SHA256SUMS.txt` passed for all three
-  payload files. Staff PDF SHA-256:
+- Superseded client handoff: `/home/alex/exhibit-handoff-1.3.20-code25`. It is
+  kept only because three phones still run that binary; it must not be delivered
+  as the current package.
+- Its PDFs were regenerated on 2026-08-15 after the fleet rollout;
+  `sha256sum -c SHA256SUMS.txt` passed for all three payload files at that time.
+  Staff PDF SHA-256:
   `b959a3850659d817edbaee9b24dfbcaaffabff231a215f07e78b9e27e7644302`;
   integrator PDF SHA-256:
   `fca816f79b7db5b1c8f04c281010cd2e31efa932ff372ad965f96f20cbeaf3e2`.
-- Both delivered PDFs remain 9-page A4 editions. They record 1.3.20/code 25,
+- The superseded 1.3.20 PDFs remain 9-page A4 editions. They record
+  1.3.20/code 25,
   the exact APK hash/certificate, guarded commissioning, automatic ADB restart,
   post-boot OTA verification and the workflow for replacing an approved route
   with any audible A2DP/BLE media speaker. The 2026-08-15 edition adds the
