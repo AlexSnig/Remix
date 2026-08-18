@@ -55,6 +55,7 @@ const {motionDetectorMock, lockedIncompleteState} = vi.hoisted(() => {
       getAudioLibrary: vi.fn().mockResolvedValue({items: []}),
       addListener: vi.fn().mockResolvedValue({remove: vi.fn()}),
       unlockKiosk: vi.fn(),
+      saveSettings: vi.fn().mockResolvedValue(undefined),
     },
   };
 });
@@ -96,5 +97,55 @@ describe('NativeDetectorPanel kiosk access', () => {
     fireEvent.click(openOperatorMode);
     await waitFor(() => expect(motionDetectorMock.unlockKiosk).toHaveBeenCalledWith({pin: '1234'}));
     expect(await screen.findByText(/Операторський режим активний/)).toBeVisible();
+  }, 10_000);
+});
+
+describe('NativeDetectorPanel detection zone', () => {
+  afterEach(cleanup);
+
+  beforeEach(() => {
+    motionDetectorMock.getSettings.mockReset().mockResolvedValue(DEFAULT_SETTINGS);
+    motionDetectorMock.saveSettings.mockReset().mockResolvedValue(undefined);
+  });
+
+  const activeClasses = 'native-action-active';
+
+  it('marks the stored zone as the selected preset', async () => {
+    render(<NativeDetectorPanel
+      lang="uk"
+      settings={DEFAULT_SETTINGS}
+      onSettingsChange={vi.fn()}
+      onRuntimeStatusChange={vi.fn()}
+    />);
+
+    const full = await screen.findByRole('button', {name: 'Весь кадр'});
+    expect(full.className).toContain(activeClasses);
+    expect(screen.getByRole('button', {name: 'Центр'}).className).not.toContain(activeClasses);
+  }, 10_000);
+
+  it('follows the stored zone when it is not the full frame', async () => {
+    render(<NativeDetectorPanel
+      lang="uk"
+      settings={{...DEFAULT_SETTINGS, detectionZone: {x: 0.2, y: 0.15, width: 0.6, height: 0.7}}}
+      onSettingsChange={vi.fn()}
+      onRuntimeStatusChange={vi.fn()}
+    />);
+
+    expect((await screen.findByRole('button', {name: 'Центр'})).className).toContain(activeClasses);
+    expect(screen.getByRole('button', {name: 'Весь кадр'}).className).not.toContain(activeClasses);
+  }, 10_000);
+
+  it('sends the chosen preset to native', async () => {
+    render(<NativeDetectorPanel
+      lang="uk"
+      settings={DEFAULT_SETTINGS}
+      onSettingsChange={vi.fn()}
+      onRuntimeStatusChange={vi.fn()}
+    />);
+
+    fireEvent.click(await screen.findByRole('button', {name: 'Центр'}));
+    await waitFor(() => expect(motionDetectorMock.saveSettings).toHaveBeenCalledWith({
+      settings: expect.objectContaining({detectionZone: {x: 0.2, y: 0.15, width: 0.6, height: 0.7}}),
+    }));
   }, 10_000);
 });

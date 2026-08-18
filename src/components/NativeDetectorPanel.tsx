@@ -451,13 +451,13 @@ export default function NativeDetectorPanel({ lang, settings, onSettingsChange, 
     <section className="rounded-2xl border border-gray-800 bg-[#111111] p-4 text-left">
       <p className="text-xs font-black uppercase tracking-wide">{t.tuning}</p>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'user' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'user' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.frontCamera}</button>
-        <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'environment' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'environment' ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{t.rearCamera}</button>
+        <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'user' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'user' ? 'native-action-active' : ''}`}>{t.frontCamera}</button>
+        <button type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, cameraFacingMode: 'environment' as const}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${settings.cameraFacingMode === 'environment' ? 'native-action-active' : ''}`}>{t.rearCamera}</button>
       </div>
       <p className="mt-5 text-[10px] font-bold uppercase tracking-wide text-gray-400">{t.zone}</p>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {zonePresets.map(preset => (
-          <button key={preset.key} type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, detectionZone: preset.zone}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${sameZone(settings.detectionZone, preset.zone) ? 'border-[#F27D26] bg-[#F27D26]/20' : ''}`}>{preset.label}</button>
+          <button key={preset.key} type="button" disabled={detectorIsRunning || busy === 'tuning'} onClick={() => void run('tuning', async () => { const next = {...settings, detectionZone: preset.zone}; updateTuning(next); await saveTuning(next); setBusy(null); })} className={`native-action ${sameZone(settings.detectionZone, preset.zone) ? 'native-action-active' : ''}`}>{preset.label}</button>
         ))}
       </div>
       <p className="mt-2 text-[10px] text-gray-500">{t.zoneHint}</p>

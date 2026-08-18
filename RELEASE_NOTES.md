@@ -1,5 +1,41 @@
 # Release notes
 
+## 1.3.22 — The selected lens and detection zone are visibly selected
+
+### Why this release exists
+
+1.3.21 gave the operator three detection-zone presets, but on the museum phone
+no preset ever looked chosen. `.native-action` already draws an orange border
+and a translucent orange fill on every button in the group, and the selected
+state only nudged those same two properties (`border-[#F27D26]` plus
+`bg-[#F27D26]/20`). Against the unselected style that difference is invisible in
+exhibition light, so the operator cannot tell which zone — or which lens — is
+currently stored.
+
+That turns a setting the operator is supposed to verify into guesswork, on the
+exact screen 1.3.21 added to widen detection range.
+
+### What changed
+
+- `.native-action-active` fills the selected button with the solid accent colour
+  and switches its text to the dark museum background, the same language the
+  header language toggle already uses. Selection is now readable at a glance.
+- The front/rear lens buttons and the three zone presets use that class instead
+  of re-tinting the base style.
+- Three component regressions cover the stored zone marking the matching preset,
+  a non-default stored zone selecting the centre preset, and a tapped preset
+  reaching native `saveSettings` with the exact zone rectangle.
+
+### What did not change
+
+Presentation only. No trigger maths, thresholds, arming gate, route policy,
+calibration behaviour or zone geometry is touched; the stored settings and the
+native side are identical to 1.3.21. The default zone remains the full frame.
+
+### Versioning
+
+Android `versionCode 27`.
+
 ## 1.3.21 — A clamped calibration is visible, and the operator can crop the frame
 
 ### Why this release exists
